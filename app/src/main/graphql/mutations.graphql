@@ -1,0 +1,15 @@
+mutation LoginMutation($login: String!, $pass: String!) {
+    login(input: {
+        email: $login
+        password: $pass
+    }) {
+        ... on AdvancedError {
+            code
+            error
+        }
+        ... on TokenPair {
+            accessToken
+            refreshToken
+        }
+    }
+}

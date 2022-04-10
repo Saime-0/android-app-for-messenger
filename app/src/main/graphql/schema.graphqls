@@ -1,0 +1,321 @@
+enum Action {
+  ADD
+
+  DEL
+}
+
+enum ActionType {
+  READ
+
+  WRITE
+}
+
+type AdvancedError {
+  code: String!
+
+  error: String!
+}
+
+input CreateMessageInput {
+  roomID: ID!
+
+  targetMsgID: ID
+
+  body: String!
+}
+
+type DropRoom {
+  roomID: ID!
+}
+
+type DropTag {
+  tagID: ID!
+}
+
+union EditListenEventCollectionResult = AdvancedError|ListenCollection
+
+type EmpTagAction {
+  action: Action!
+
+  empID: ID!
+
+  tagIDs: [ID!]!
+}
+
+type Employee {
+  empID: ID!
+
+  firstName: String!
+
+  lastName: String!
+
+  joinedAt: Int64!
+
+  tags: Tags!
+}
+
+type Employees {
+  employees: [Employee!]
+}
+
+union EmployeesResult = AdvancedError|Employees
+
+union EventResult = NewMessage|DropTag|EmpTagAction|MemberAction|DropRoom|TokenExpired
+
+enum EventSubjectAction {
+  ADD
+
+  DELETE
+}
+
+enum EventType {
+  all
+
+  NewMessage
+
+  DropTag
+
+  EmpTagAction
+
+  MemberAction
+
+  DropRoom
+
+  TokenExpired
+}
+
+enum FetchType {
+  POSITIVE
+
+  NEUTRAL
+
+  NEGATIVE
+}
+
+input FindEmployees {
+  empID: ID
+
+  roomID: ID
+
+  tagID: ID
+
+  name: String
+}
+
+input FindMessages {
+  msgID: ID
+
+  empID: ID
+
+  roomID: ID
+
+  targetID: ID
+
+  textFragment: String
+}
+
+input FindRooms {
+  roomID: ID
+
+  name: String
+}
+
+scalar HexColor
+
+scalar Int64
+
+type ListenCollection {
+  sessionKey: String!
+
+  success: String!
+
+  collection: [ListenedChat!]!
+}
+
+type ListenedChat {
+  id: ID!
+
+  events: [EventType!]!
+}
+
+input LoginInput {
+  email: String!
+
+  password: String!
+}
+
+union LoginResult = AdvancedError|TokenPair
+
+type Me {
+  employee: Employee!
+
+  personal: PersonalData!
+
+  rooms: Rooms!
+}
+
+union MeResult = AdvancedError|Me
+
+type Member {
+  employee: Employee!
+
+  room: Room!
+}
+
+type MemberAction {
+  action: Action!
+
+  empID: ID!
+
+  RoomIDs: [ID!]!
+}
+
+type Members {
+  members: [Member!]
+}
+
+type Message {
+  room: Room!
+
+  msgID: ID!
+
+  employee: Employee!
+
+  targetMsgID: Message
+
+  body: String!
+
+  createdAt: Int64!
+}
+
+type Messages {
+  messages: [Message!]
+}
+
+union MessagesResult = AdvancedError|Messages
+
+type Mutation {
+  login(input: LoginInput!): LoginResult!
+
+  refreshTokens(sessionKey: String, refreshToken: String!): RefreshTokensResult!
+
+  sendMsg(input: CreateMessageInput!): SendMsgResult!
+
+  editListenEventCollection(sessionKey: String!, action: EventSubjectAction!, targetRooms: [ID!]!, listenEvents: [EventType!]!): EditListenEventCollectionResult!
+}
+
+union MutationResult = AdvancedError|Successful
+
+type NewMessage {
+  msgID: ID!
+
+  roomID: ID!
+
+  targetMsgID: ID
+
+  empID: ID!
+
+  body: String!
+
+  createdAt: Int64!
+}
+
+input Params {
+  limit: Int
+
+  offset: Int
+}
+
+type PersonalData {
+  email: String!
+
+  phoneNumber: String!
+
+  token: String!
+}
+
+type Query {
+  employees(find: FindEmployees!, params: Params): EmployeesResult!
+
+  me: MeResult!
+
+  messages(find: FindMessages!, params: Params): MessagesResult!
+
+  rooms(find: FindRooms!, params: Params): RoomsResult!
+
+  tags(tagIDs: [Int!], params: Params): TagsResult!
+}
+
+union RefreshTokensResult = AdvancedError|TokenPair
+
+union RegisterResult = AdvancedError|Successful
+
+type Room {
+  roomID: ID!
+
+  name: String!
+
+  view: RoomType!
+
+  lastMessageRead: ID!
+
+  lastMessageID: ID!
+
+  members: Members!
+}
+
+enum RoomType {
+  TALK
+
+  BLOG
+}
+
+type Rooms {
+  rooms: [Room!]
+}
+
+union RoomsResult = AdvancedError|Rooms
+
+union SendMsgResult = AdvancedError|Successful
+
+type Subscription {
+  subscribe(sessionKey: String!): SubscriptionBody
+}
+
+type SubscriptionBody {
+  event: EventType!
+
+  body: EventResult!
+}
+
+type Successful {
+  success: String!
+}
+
+type Tag {
+  tagID: ID!
+
+  name: String!
+}
+
+type Tags {
+  tags: [Tag!]
+}
+
+union TagsResult = AdvancedError|Tags
+
+type TokenExpired {
+  message: String!
+}
+
+type TokenPair {
+  accessToken: String!
+
+  refreshToken: String!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

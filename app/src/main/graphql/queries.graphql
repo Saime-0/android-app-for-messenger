@@ -1,0 +1,26 @@
+query ProfileQuery {
+    me {
+        ... on AdvancedError {
+            code
+            error
+        }
+        ... on Me {
+            employee {
+                empID
+                firstName
+                lastName
+                tags {
+                    tags {
+                        name
+                        tagID
+                    }
+                }
+            }
+            personal {
+                email
+                phoneNumber
+                token
+            }
+        }
+    }
+}
