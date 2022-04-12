@@ -25,9 +25,7 @@ import ru.saime.gql_client.screens.RoomMessages
 class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-		val okHttpClient = OkHttpClient.Builder().build()
 		val apolloClient = ApolloClient.Builder()
-			.okHttpClient(okHttpClient)
 			.serverUrl("http://chating.ddns.net:8080/query")
 			.build()
 		val pref = getSharedPreferences(PrefTableName, MODE_PRIVATE)

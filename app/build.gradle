@@ -50,6 +50,9 @@ apollo {
     generateKotlinModels.set(true)
     packageName.set("pkg")
     schemaFile.set(file("src/main/graphql/schema.graphqls"))
+
+    mapScalar("ID", "kotlin.Int")
+    mapScalar("Int64", "kotlin.Int")
 }
 
 dependencies {

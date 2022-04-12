@@ -9,6 +9,7 @@ query ProfileQuery {
                 empID
                 firstName
                 lastName
+                joinedAt
                 tags {
                     tags {
                         name
@@ -20,6 +21,31 @@ query ProfileQuery {
                 email
                 phoneNumber
                 token
+            }
+        }
+    }
+}
+
+query EmployeeQuery($empID: ID!) {
+    employees(find: {
+        empID: $empID
+    }) {
+        ... on AdvancedError {
+            error
+            code
+        }
+        ... on Employees {
+            employees {
+                empID
+                firstName
+                lastName
+                joinedAt
+                tags {
+                    tags {
+                        tagID
+                        name
+                    }
+                }
             }
         }
     }

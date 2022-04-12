@@ -1,7 +1,9 @@
 package ru.saime.gql_client.widgets
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -10,6 +12,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import ru.saime.gql_client.DockButtonCC
+import ru.saime.gql_client.DockButtonTextCC
+import ru.saime.gql_client.DockCC
+import ru.saime.gql_client.DockHeight
 import ru.saime.gql_client.navigation.Screen
 
 
@@ -17,14 +23,14 @@ import ru.saime.gql_client.navigation.Screen
 fun Dock(navController: NavController) {
 	val navigate = CategoryNavigate(navController)
 	Card(
-		shape = RoundedCornerShape(20.dp),
-		elevation = 10.dp,
 		modifier = Modifier
-//			.width(600.dp)
-			.fillMaxWidth()
+			.fillMaxWidth(),
+		shape = RoundedCornerShape(17.dp),
+		backgroundColor = DockCC,
+		elevation = 10.dp
 	) {
 		Row(
-			modifier = Modifier.height(70.dp),
+			modifier = Modifier.height(DockHeight),
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.SpaceAround
 		) {
@@ -35,7 +41,7 @@ fun Dock(navController: NavController) {
 	}
 }
 
-class CategoryNavigate(val navController: NavController) {
+class CategoryNavigate(private val navController: NavController) {
 	@Composable
 	fun DockCategory(route: String) {
 		Button(
@@ -49,11 +55,17 @@ class CategoryNavigate(val navController: NavController) {
 				}
 			},
 			colors = ButtonDefaults.buttonColors(
-				backgroundColor = Color.DarkGray,
-				contentColor = Color.LightGray
+				backgroundColor = DockButtonCC,
+				contentColor = DockButtonTextCC
 			)
 		) {
 			Text(text = route)
 		}
 	}
+}
+
+
+@Composable
+fun DockSpacer() {
+	Box(modifier = Modifier.height(DockHeight))
 }

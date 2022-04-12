@@ -12,6 +12,12 @@ object Cache {
 
 	val LoadedData: MutableMap<LoadedDataType, Unit> = EnumMap<LoadedDataType, Unit>(LoadedDataType::class.java)
 
+	object Me {
+		var ID: Int = 0
+		var email: String = ""
+		var phone: String = ""
+	}
+
 	object Data {
 		val rooms: MutableMap<Int, Room> = hashMapOf()
 		val messages: MutableMap<Int, Message> = hashMapOf()
