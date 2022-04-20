@@ -13,11 +13,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.apollographql.apollo3.ApolloClient
-import com.apollographql.apollo3.network.okHttpClient
 import ru.saime.gql_client.screens.Home
 import ru.saime.gql_client.screens.Login
 import ru.saime.gql_client.ui.theme.Gql_clientTheme
-import okhttp3.OkHttpClient
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.screens.RoomMessages
 
@@ -28,31 +26,30 @@ class MainActivity : ComponentActivity() {
 		val apolloClient = ApolloClient.Builder()
 			.serverUrl("http://chating.ddns.net:8080/query")
 			.build()
-		val pref = getSharedPreferences(PrefTableName, MODE_PRIVATE)
 		setContent {
 			Gql_clientTheme {
 				Surface(
 					modifier = Modifier.fillMaxSize(),
 					color = MaterialTheme.colors.background
 				) {
-					val client = View(apolloClient, rememberNavController(), pref)
+					val view = View(apolloClient, rememberNavController(), getSharedPreferences(PrefTableName, MODE_PRIVATE))
 					// A surface container using the 'background' color from the theme
 					NavHost(
-						navController = client.mainNavController,
+						navController = view.mainNavController,
 						startDestination =
-						if (client.isAuthenticated()) Screen.Home.route
-						else Screen.Login.route
+						if (view.refreshTokenLoaded()) Screen.Home.routeRef
+						else Screen.Login.routeRef
 					) {
 						composable(
-							Screen.RoomMessages.route,
-							arguments = listOf(navArgument("roomID") { type = NavType.IntType }
+							Screen.RoomMessages().routeRef,
+							arguments = listOf(navArgument(Screen.RoomMessages.Args.RoomID.name) { type = NavType.IntType }
 							)
-						) { backStackEntry ->
-							if (backStackEntry.arguments != null)
-								RoomMessages(client, backStackEntry.arguments!!.getInt("roomID"))
+						) {
+							if (it.arguments != null)
+								RoomMessages(view, it.arguments!!.getInt(Screen.RoomMessages.Args.RoomID.name))
 						}
-						composable(Screen.Home.route) { Home(client) }
-						composable(Screen.Login.route) { Login(client) }
+						composable(Screen.Home.routeRef) { Home(view) }
+						composable(Screen.Login.routeRef) { Login(view) }
 //						composable(Screen.Loading.route) { /*TODO*/ }
 					}
 				}

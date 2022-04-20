@@ -1,22 +1,21 @@
 package ru.saime.gql_client.widgets
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import ru.saime.gql_client.DockButtonCC
 import ru.saime.gql_client.DockButtonTextCC
 import ru.saime.gql_client.DockCC
 import ru.saime.gql_client.DockHeight
 import ru.saime.gql_client.navigation.Screen
+import ru.saime.gql_client.navigation.singleNavigate
 
 
 @Composable
@@ -34,32 +33,43 @@ fun Dock(navController: NavController) {
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.SpaceAround
 		) {
-			navigate.DockCategory(Screen.Guide.route)
-			navigate.DockCategory(Screen.Rooms.route)
-			navigate.DockCategory(Screen.Profile.route)
+			navigate.DockCategory(Screen.Guide.name, Screen.Guide.routeRef)
+			navigate.DockCategory(Screen.Rooms.name, Screen.Rooms.routeRef) // ----xfixme: RoomID from view.state.roomid
+			navigate.DockCategory(
+				Screen.Profile().name,
+				Screen.Profile(0).routeWithArgs,
+				modifier = Modifier.pointerInput(Unit){
+					detectTapGestures(
+						onDoubleTap = {
+							// perform some action here..
+						}
+					)
+				}
+			)
 		}
 	}
 }
 
-class CategoryNavigate(private val navController: NavController) {
+class CategoryNavigate(
+	private val navController: NavController
+) {
 	@Composable
-	fun DockCategory(route: String) {
+	fun DockCategory(
+		text: String,
+		route: String,
+		modifier: Modifier = Modifier
+	) {
 		Button(
 			onClick = {
-				navController.navigate(route) {
-					popUpTo(navController.graph.findStartDestination().id) {
-						saveState = true
-					}
-					launchSingleTop=true
-					restoreState=true
-				}
+				navController.singleNavigate(route)
 			},
+			modifier = modifier,
 			colors = ButtonDefaults.buttonColors(
 				backgroundColor = DockButtonCC,
 				contentColor = DockButtonTextCC
 			)
 		) {
-			Text(text = route)
+			Text(text = text)
 		}
 	}
 }

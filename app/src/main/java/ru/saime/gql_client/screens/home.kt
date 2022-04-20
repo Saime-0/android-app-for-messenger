@@ -6,15 +6,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import ru.saime.gql_client.View
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.widgets.Dock
@@ -22,7 +22,11 @@ import ru.saime.gql_client.widgets.Dock
 @Composable
 fun Home(view: View) {
 	val navController = rememberNavController()
-	var profileID = remember {	mutableStateOf(0)}
+
+	// state
+	var profileID = 0
+
+
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
@@ -30,11 +34,24 @@ fun Home(view: View) {
 	) {
 		NavHost(
 			navController = navController,
-			startDestination = Screen.Profile.route
+			startDestination = Screen.Profile().routeRef
 		) {
 //			composable(Screen.Guide.route) { Guide() }
-			composable(Screen.Rooms.route) { Rooms(view) }
-			composable(Screen.Profile.route) { LoadProfile(view = view, empID = profileID.value)}
+			composable(Screen.Rooms.routeRef) { Rooms(view) }
+			composable(
+				Screen.Profile().routeRef,
+				arguments = listOf(navArgument(Screen.Profile.Args.EmpID.name) {
+					type = NavType.IntType
+				})
+			) {
+				if (it.arguments != null) {
+					LoadProfile(
+						view = view,
+						empID = it.arguments!!.getInt(Screen.Profile.Args.EmpID.name)
+					)
+					profileID = it.arguments!!.getInt(Screen.Profile.Args.EmpID.name)
+				}
+			}
 		}
 	}
 

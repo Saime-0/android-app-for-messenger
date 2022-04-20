@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,7 +41,6 @@ fun LoadProfile(view: View, empID: Int, modifier: Modifier = Modifier) {
 		mutableStateOf(false)
 	}
 
-
 	Loading(isDisplayed = isLoading.value, modifier = Modifier.fillMaxSize())
 	ErrorComponent(
 		isDisplayed = isError.value.first,
@@ -57,14 +55,13 @@ fun LoadProfile(view: View, empID: Int, modifier: Modifier = Modifier) {
 				isLoading.value = true
 				if (empID == 0)
 					view.orderMe { err ->
-						if (err != null) isError.value = Pair(true, err)
+						if (err != null) isError.value = Pair(true, err) else isOk.value = true
 					}
 				else
 					view.orderEmployeeProfile(empID = empID) { err ->
-						if (err != null) isError.value = Pair(true, err)
+						if (err != null) isError.value = Pair(true, err) else isOk.value = true
 					}
 				isLoading.value = false
-				isOk.value = true
 			}
 
 	}
@@ -96,8 +93,8 @@ fun ShowProfile(
 					.clip(RoundedCornerShape(30.dp))
 			)
 			Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]?.let {
-				TextUpperProfile("${it.firstName} ${it.lastName}")
-				TextUpperProfile("ID: ${it.empID}")
+				TextLargeProfile("${it.firstName} ${it.lastName}")
+				TextMediumProfile("сотрудник № ${it.empID}", color = ProfileDimCC)
 
 				DividerCC(modifier = Modifier.padding(18.dp)) //
 
@@ -107,10 +104,10 @@ fun ShowProfile(
 					verticalArrangement = Arrangement.spacedBy(20.dp),
 					horizontalAlignment = Alignment.Start
 				) {
-					Text("Контакты:")
-					TextSecondProfile(Date(it.joinedAt.toLong()).toString())
-					TextSecondProfile(text = Cache.Me.email)
-					TextSecondProfile(text = Cache.Me.phone)
+					TextSmallProfile("Контакты:", color = ProfileSelectionHeaderCC)
+					TextValuesProfile(Date(it.joinedAt.toLong()).toString())
+					TextValuesProfile(text = Cache.Me.email)
+					TextValuesProfile(text = Cache.Me.phone)
 				}
 			}
 			DockSpacer()
@@ -118,7 +115,7 @@ fun ShowProfile(
 }
 
 @Composable
-fun TextUpperProfile(
+fun TextLargeProfile(
 	text: String,
 	color: Color = MainTextCC,
 	fontSize: TextUnit = 30.sp
@@ -132,9 +129,37 @@ fun TextUpperProfile(
 }
 
 @Composable
-fun TextSecondProfile(
+fun TextMediumProfile(
 	text: String,
-	color: Color = DateProfileCC,
+	color: Color = MainTextCC,
+	fontSize: TextUnit = 21.sp
+) {
+	Text(
+		text = text.uppercase(Locale.getDefault()),
+		color = color,
+		fontFamily = FontFamily.SansSerif,
+		fontSize = fontSize
+	)
+}
+
+@Composable
+fun TextSmallProfile(
+	text: String,
+	color: Color = MainTextCC,
+	fontSize: TextUnit = 16.sp
+) {
+	Text(
+		text = text,
+		color = color,
+		fontFamily = FontFamily.SansSerif,
+		fontSize = fontSize
+	)
+}
+
+@Composable
+fun TextValuesProfile(
+	text: String,
+	color: Color = ProfileYellowCC,
 	fontSize: TextUnit = 18.sp
 ) {
 	Text(

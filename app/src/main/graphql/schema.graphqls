@@ -151,7 +151,7 @@ type Me {
 
   personal: PersonalData!
 
-  rooms: Rooms!
+  rooms(params: Params!): Rooms!
 }
 
 union MeResult = AdvancedError|Me
@@ -194,8 +194,14 @@ type Messages {
 
 union MessagesResult = AdvancedError|Messages
 
+union MoveRoomResult = AdvancedError|Successful
+
 type Mutation {
   login(input: LoginInput!): LoginResult!
+
+  moveRoom(roomID: ID!, prevRoomID: ID): MoveRoomResult!
+
+  readMsg(roomID: ID!, msgID: ID!): ReadMsgResult!
 
   refreshTokens(sessionKey: String, refreshToken: String!): RefreshTokensResult!
 
@@ -246,6 +252,8 @@ type Query {
   tags(tagIDs: [Int!], params: Params): TagsResult!
 }
 
+union ReadMsgResult = AdvancedError|Successful
+
 union RefreshTokensResult = AdvancedError|TokenPair
 
 union RegisterResult = AdvancedError|Successful
@@ -256,6 +264,8 @@ type Room {
   name: String!
 
   view: RoomType!
+
+  prevRoomID: ID
 
   lastMessageRead: ID!
 

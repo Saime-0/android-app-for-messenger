@@ -1,6 +1,7 @@
 package ru.saime.gql_client.cache
 
 import pkg.EmployeeQuery
+import pkg.MeRoomsListQuery
 import pkg.ProfileQuery
 import ru.saime.gql_client.cache.Cache.Me.ID
 import ru.saime.gql_client.cache.Cache.Me.email
@@ -36,13 +37,18 @@ fun Cache.fillEmployee(data: ProfileQuery.Employee) {
 	)
 }
 
-fun Cache.fillRooms(data: ProfileQuery.Employee) { // todo
-	Cache.Data.employees[data.empID] = Employee(
-		empID = data.empID,
-		firstName = data.firstName,
-		lastName = data.lastName,
-		joinedAt = 0,
-	)
+fun Cache.fillRooms(data: MeRoomsListQuery.Rooms) { // todo
+	if (data.rooms != null)
+		for (room in data.rooms) {
+			Cache.Data.rooms[room.roomID] = Room(
+				roomID = room.roomID,
+				name = room.name,
+				view = room.view,
+				lastMsgID = room.lastMessageID,
+
+			)
+		}
+
 }
 
 

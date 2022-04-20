@@ -1,11 +1,12 @@
 package ru.saime.gql_client.cache
 
+import pkg.type.RoomType
 import java.util.*
 
 enum class LoadedDataType {
 	Me,
 	Tags,
-
+	RoomList,
 }
 
 object Cache {
@@ -26,16 +27,17 @@ object Cache {
 	}
 }
 
-enum class RoomType {
-	BLOG,
-	TALK
-}
+//enum class RoomType {
+//	BLOG,
+//	TALK
+//}
 
 data class Room(
 	val roomID: Int,
 	val name: String,
 	val view: RoomType,
-	val lastMsgRead: Int,
+//	val lastMsgRead: Int,
+	val lastMsgID: Int,
 )
 
 data class Employee(

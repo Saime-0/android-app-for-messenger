@@ -13,3 +13,19 @@ mutation LoginMutation($login: String!, $pass: String!) {
         }
     }
 }
+
+mutation RefreshTokens($refreshToken: String!, $sessionKey: String) {
+    refreshTokens(
+        refreshToken: $refreshToken
+        sessionKey: $sessionKey
+    ) {
+        ... on AdvancedError {
+            code
+            error
+        }
+        ... on TokenPair {
+            accessToken
+            refreshToken
+        }
+    }
+}

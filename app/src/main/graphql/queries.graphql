@@ -50,3 +50,26 @@ query EmployeeQuery($empID: ID!) {
         }
     }
 }
+
+query MeRoomsList($offset: Int, $limit: Int) {
+    me {
+        ... on AdvancedError {
+            code
+            error
+        }
+        ... on Me {
+            rooms(params: {
+                offset: $offset
+                limit: $limit
+            }) {
+                rooms {
+                    roomID
+                    name
+                    view
+                    lastMessageID
+                }
+            }
+        }
+
+    }
+}

@@ -5,9 +5,8 @@ import androidx.core.content.edit
 import androidx.navigation.NavHostController
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.api.ApolloResponse
-import pkg.EmployeeQuery
-import pkg.LoginMutation
-import pkg.ProfileQuery
+import com.apollographql.apollo3.api.Optional
+import pkg.*
 import ru.saime.gql_client.cache.*
 
 
@@ -20,9 +19,11 @@ class View(
 	private var accessToken: String = MyToken
 	private var refreshToken: String = ""
 
-	fun isAuthenticated() = refreshToken != ""
+	fun refreshTokenLoaded() = refreshToken != ""
 
-	init { refreshToken = pref.getString(PrefRefreshTokenKey, "") ?: ""	}
+	init {
+		refreshToken = pref.getString(PrefRefreshTokenKey, "") ?: ""
+	}
 
 	suspend fun orderMe(callback: (err: String?) -> Unit) {
 		if (Cache.LoadedData.containsKey(LoadedDataType.Me)) {
@@ -43,8 +44,7 @@ class View(
 					Cache.fillMe(response.data!!.me.onMe!!)
 					Cache.LoadedData[LoadedDataType.Me] = Unit
 					callback.invoke(null)
-				}
-				else
+				} else
 					callback.invoke(response.data!!.me.onAdvancedError!!.toString())
 			else if (response.errors != null)
 				callback.invoke(response.errors!!.toString())
@@ -55,7 +55,7 @@ class View(
 		return
 	}
 
-	suspend fun orderEmployeeProfile(empID:Int, callback: (err: String?) -> Unit) {
+	suspend fun orderEmployeeProfile(empID: Int, callback: (err: String?) -> Unit) {
 		if (Cache.Data.employees.containsKey(empID)) {
 			println("EmployeeProfile empID = $empID - уже был запрошен")
 			callback.invoke(null)
@@ -71,18 +71,17 @@ class View(
 				.execute()
 			if (response.data != null)
 				if (response.data!!.employees.onEmployees != null)
-				if (response.data!!.employees.onEmployees!!.employees != null)
-				if (response.data!!.employees.onEmployees!!.employees!!.isNotEmpty()){
-					Cache.fillEmployee(response.data!!.employees.onEmployees!!.employees!![0])
-					Cache.LoadedData[LoadedDataType.Me] = Unit
-					callback.invoke(null)
-				}
-				else
-					callback.invoke("not-found")
-				else
-					callback.invoke(response.data!!.employees.onAdvancedError!!.toString())
-			else if (response.errors != null)
-				callback.invoke(response.errors!!.toString())
+					if (response.data!!.employees.onEmployees!!.employees != null)
+						if (response.data!!.employees.onEmployees!!.employees!!.isNotEmpty()) {
+							Cache.fillEmployee(response.data!!.employees.onEmployees!!.employees!![0])
+							Cache.LoadedData[LoadedDataType.Me] = Unit
+							callback.invoke(null)
+						} else
+							callback.invoke("not-found")
+					else
+						callback.invoke(response.data!!.employees.onAdvancedError!!.toString())
+				else if (response.errors != null)
+					callback.invoke(response.errors!!.toString())
 		} catch (ex: Exception) {
 			println(ex)
 			callback.invoke(ex.toString())
@@ -91,7 +90,7 @@ class View(
 	}
 
 
-	suspend fun login(
+	suspend fun loginByCredentials(
 		login: String,
 		pass: String,
 		callback: (success: Boolean, err: String?) -> Unit
@@ -102,7 +101,7 @@ class View(
 			.mutation(LoginMutation(login, pass))
 			.execute()
 		try {
-			accessToken = """Bearer ${response.data!!.login.onTokenPair!!.accessToken}"""
+			accessToken = "Bearer ${response.data!!.login.onTokenPair!!.accessToken}"
 			refreshToken = response.data!!.login.onTokenPair!!.refreshToken
 			pref.edit {
 				putString(PrefRefreshTokenKey, refreshToken)
@@ -111,8 +110,68 @@ class View(
 			callback.invoke(true, null)
 		} catch (ex: Exception) {
 			println(ex)
-			callback.invoke(false, response.data.toString() + "/// "+ ex.toString())
+			callback.invoke(false, response.data.toString() + "/// " + ex.toString())
 			return
 		}
+	}
+
+	suspend fun refreshTokens(
+		refToken: String,
+		sessionKey: String?,
+		callback: (success: Boolean, err: String?) -> Unit
+	) {
+		val response = apolloClient
+			.mutation(RefreshTokensMutation(refToken, Optional.presentIfNotNull(sessionKey)))
+			.execute()
+		try {
+			accessToken = "Bearer ${response.data!!.refreshTokens.onTokenPair!!.accessToken}"
+			refreshToken = response.data!!.refreshTokens.onTokenPair!!.refreshToken
+			pref.edit {
+				putString(PrefRefreshTokenKey, refreshToken)
+			}
+			callback.invoke(true, null)
+		} catch (ex: Exception) {
+			println(ex)
+			callback.invoke(false, response.data.toString() + "/// " + ex.toString())
+			return
+		}
+	}
+
+	suspend fun orderMeRooms(
+		callback: (err: String?) -> Unit
+	) {
+		if (Cache.LoadedData.containsKey(LoadedDataType.RoomList)) {
+			println("RoomList уже был запрошен")
+			callback.invoke(null)
+			return
+		}
+		println("попытка запросить RoomList")
+		val response: ApolloResponse<MeRoomsListQuery.Data>
+		try {
+			response = apolloClient
+				.query(
+					MeRoomsListQuery(
+						Optional.presentIfNotNull(0),
+						Optional.presentIfNotNull(20)
+					)
+				)
+				.addHttpHeader("authorization", accessToken)
+				.execute()
+			if (response.data != null)
+				if (response.data!!.me.onMe != null) {
+					if (response.data!!.me.onMe!!.rooms.rooms != null)
+						Cache.fillRooms(response.data!!.me.onMe!!.rooms)
+					print(response.data!!.me.onMe!!.rooms.rooms)
+					Cache.LoadedData[LoadedDataType.RoomList] = Unit
+					callback.invoke(null)
+				} else
+					callback.invoke(response.data!!.me.onAdvancedError!!.toString())
+			else if (response.errors != null)
+				callback.invoke(response.errors!!.toString())
+		} catch (ex: Exception) {
+			println(ex)
+			callback.invoke(ex.toString())
+		}
+		return
 	}
 }

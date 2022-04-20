@@ -7,15 +7,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import ru.saime.gql_client.View
 import ru.saime.gql_client.navigation.Screen
+import ru.saime.gql_client.navigation.singleNavigate
 
 @Composable
-fun Login(client: View) {
+fun Login(view: View) {
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { mutableStateOf(SnackbarHostState()) }
 	var login by rememberSaveable { mutableStateOf("") }
@@ -41,15 +41,9 @@ fun Login(client: View) {
 				TextField(value = pass, onValueChange = { pass = it })
 				Button(onClick = {
 					CoroutineScope(Dispatchers.Main).launch {
-						client.login(login, pass) { success, err ->
+						view.loginByCredentials(login, pass) { success, err ->
 							if (success) {
-								client.mainNavController.navigate(Screen.Home.route) {
-									popUpTo(client.mainNavController.graph.findStartDestination().id) {
-										saveState = true
-									}
-									launchSingleTop=true
-									restoreState=true
-								}
+								view.mainNavController.singleNavigate(Screen.Home.routeRef)
 							}
 							else {
 								scope.launch {
