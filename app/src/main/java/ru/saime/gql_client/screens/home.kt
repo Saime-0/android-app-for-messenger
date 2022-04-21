@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import ru.saime.gql_client.BackgroundCC
 import ru.saime.gql_client.View
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.widgets.Dock
@@ -30,11 +31,12 @@ fun Home(view: View) {
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.background(Color.Cyan)
+			.background(BackgroundCC)
 	) {
 		NavHost(
 			navController = navController,
-			startDestination = Screen.Profile().routeRef
+			startDestination = Screen.Profile().routeRef,
+		modifier = Modifier.padding(14.dp)
 		) {
 //			composable(Screen.Guide.route) { Guide() }
 			composable(Screen.Rooms.routeRef) { Rooms(view) }
@@ -45,9 +47,9 @@ fun Home(view: View) {
 				})
 			) {
 				if (it.arguments != null) {
-					LoadProfile(
+					Profile(
 						view = view,
-						empID = it.arguments!!.getInt(Screen.Profile.Args.EmpID.name)
+						empID = it.arguments!!.getInt(Screen.Profile.Args.EmpID.name),
 					)
 					profileID = it.arguments!!.getInt(Screen.Profile.Args.EmpID.name)
 				}

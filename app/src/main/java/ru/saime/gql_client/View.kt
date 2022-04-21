@@ -18,6 +18,7 @@ class View(
 	//	private var accessToken: String = MyToken
 	private var accessToken: String = MyToken
 	private var refreshToken: String = ""
+	private var sessionKey: String? = null
 
 	fun refreshTokenLoaded() = refreshToken != ""
 
@@ -116,24 +117,23 @@ class View(
 	}
 
 	suspend fun refreshTokens(
-		refToken: String,
-		sessionKey: String?,
-		callback: (success: Boolean, err: String?) -> Unit
-	) {
+		callback: (err: String?) -> Unit
+	): Boolean  {
 		val response = apolloClient
-			.mutation(RefreshTokensMutation(refToken, Optional.presentIfNotNull(sessionKey)))
+			.mutation(RefreshTokensMutation(refreshToken, Optional.presentIfNotNull(sessionKey)))
 			.execute()
-		try {
+		return try {
 			accessToken = "Bearer ${response.data!!.refreshTokens.onTokenPair!!.accessToken}"
-			refreshToken = response.data!!.refreshTokens.onTokenPair!!.refreshToken
+			this.refreshToken = response.data!!.refreshTokens.onTokenPair!!.refreshToken
 			pref.edit {
-				putString(PrefRefreshTokenKey, refreshToken)
+				putString(PrefRefreshTokenKey, this@View.refreshToken)
 			}
-			callback.invoke(true, null)
+			callback.invoke(null)
+			true
 		} catch (ex: Exception) {
 			println(ex)
-			callback.invoke(false, response.data.toString() + "/// " + ex.toString())
-			return
+			callback.invoke(response.data.toString() + "/// " + ex.toString())
+			false
 		}
 	}
 

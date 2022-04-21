@@ -30,7 +30,7 @@ import java.util.*
 
 
 @Composable
-fun LoadProfile(view: View, empID: Int, modifier: Modifier = Modifier) {
+fun Profile(view: View, empID: Int, modifier: Modifier = Modifier) {
 	val isLoading = remember {
 		mutableStateOf(false)
 	}
@@ -49,7 +49,7 @@ fun LoadProfile(view: View, empID: Int, modifier: Modifier = Modifier) {
 	)
 	ShowProfile(isDisplayed = isOk.value, empID = empID)
 	Box {
-		println(!(isError.value.first || isOk.value))
+//		println(!(isError.value.first || isOk.value))
 		if (!(isError.value.first || isOk.value))
 			CoroutineScope(Dispatchers.Main).launch {
 				isLoading.value = true
@@ -78,9 +78,6 @@ fun ShowProfile(
 	if (isDisplayed)
 		Column(
 			modifier = modifier
-				.fillMaxSize()
-				.background(BackgroundCC)
-				.padding(14.dp)
 				.verticalScroll(scrollState),
 			verticalArrangement = Arrangement.spacedBy(8.dp),
 			horizontalAlignment = Alignment.CenterHorizontally

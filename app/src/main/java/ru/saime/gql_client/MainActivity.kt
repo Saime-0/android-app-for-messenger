@@ -13,11 +13,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.apollographql.apollo3.ApolloClient
+import kotlinx.coroutines.runBlocking
 import ru.saime.gql_client.screens.Home
 import ru.saime.gql_client.screens.Login
 import ru.saime.gql_client.ui.theme.Gql_clientTheme
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.screens.RoomMessages
+import com.google.accompanist.insets.ProvideWindowInsets
 
 
 class MainActivity : ComponentActivity() {
@@ -27,30 +29,49 @@ class MainActivity : ComponentActivity() {
 			.serverUrl("http://chating.ddns.net:8080/query")
 			.build()
 		setContent {
-			Gql_clientTheme {
-				Surface(
-					modifier = Modifier.fillMaxSize(),
-					color = MaterialTheme.colors.background
-				) {
-					val view = View(apolloClient, rememberNavController(), getSharedPreferences(PrefTableName, MODE_PRIVATE))
-					// A surface container using the 'background' color from the theme
-					NavHost(
-						navController = view.mainNavController,
-						startDestination =
-						if (view.refreshTokenLoaded()) Screen.Home.routeRef
-						else Screen.Login.routeRef
+			ProvideWindowInsets(windowInsetsAnimationsEnabled = true) {
+				Gql_clientTheme {
+					Surface(
+						modifier = Modifier.fillMaxSize(),
+						color = MaterialTheme.colors.background
 					) {
-						composable(
-							Screen.RoomMessages().routeRef,
-							arguments = listOf(navArgument(Screen.RoomMessages.Args.RoomID.name) { type = NavType.IntType }
-							)
+						val view = View(
+							apolloClient,
+							rememberNavController(),
+							getSharedPreferences(PrefTableName, MODE_PRIVATE)
+						)
+						// A surface container using the 'background' color from the theme
+						NavHost(
+							navController = view.mainNavController,
+							startDestination =
+							if (view.refreshTokenLoaded()) {
+								val resultRefreshTokens: Boolean
+								runBlocking {
+									resultRefreshTokens = view.refreshTokens {}
+								}
+								if (resultRefreshTokens)
+									Screen.Home.routeRef
+								else
+									Screen.Login.routeRef
+							} else Screen.Login.routeRef
 						) {
-							if (it.arguments != null)
-								RoomMessages(view, it.arguments!!.getInt(Screen.RoomMessages.Args.RoomID.name))
-						}
-						composable(Screen.Home.routeRef) { Home(view) }
-						composable(Screen.Login.routeRef) { Login(view) }
+							composable(
+								Screen.RoomMessages().routeRef,
+								arguments = listOf(navArgument(Screen.RoomMessages.Args.RoomID.name) {
+									type = NavType.IntType
+								}
+								)
+							) {
+								if (it.arguments != null)
+									RoomMessages(
+										view,
+										it.arguments!!.getInt(Screen.RoomMessages.Args.RoomID.name)
+									)
+							}
+							composable(Screen.Home.routeRef) { Home(view) }
+							composable(Screen.Login.routeRef) { Login(view) }
 //						composable(Screen.Loading.route) { /*TODO*/ }
+						}
 					}
 				}
 			}
