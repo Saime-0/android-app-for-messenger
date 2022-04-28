@@ -20,6 +20,7 @@ import ru.saime.gql_client.ui.theme.Gql_clientTheme
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.screens.RoomMessages
 import com.google.accompanist.insets.ProvideWindowInsets
+import ru.saime.gql_client.cache.Cache
 
 
 class MainActivity : ComponentActivity() {
@@ -33,7 +34,7 @@ class MainActivity : ComponentActivity() {
 				Gql_clientTheme {
 					Surface(
 						modifier = Modifier.fillMaxSize(),
-						color = MaterialTheme.colors.background
+						color = BackgroundCC
 					) {
 						val view = View(
 							apolloClient,
@@ -63,9 +64,10 @@ class MainActivity : ComponentActivity() {
 								)
 							) {
 								if (it.arguments != null)
+									if (Cache.Data.rooms[it.arguments!!.getInt(Screen.RoomMessages.Args.RoomID.name)] != null)
 									RoomMessages(
 										view,
-										it.arguments!!.getInt(Screen.RoomMessages.Args.RoomID.name)
+										Cache.Data.rooms[it.arguments!!.getInt(Screen.RoomMessages.Args.RoomID.name)]!!
 									)
 							}
 							composable(Screen.Home.routeRef) { Home(view) }

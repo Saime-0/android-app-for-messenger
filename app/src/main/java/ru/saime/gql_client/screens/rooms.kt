@@ -23,10 +23,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import ru.saime.gql_client.BackgroundCC
-import ru.saime.gql_client.DockCC
-import ru.saime.gql_client.RoomCardBackgroundCC
-import ru.saime.gql_client.View
+import ru.saime.gql_client.*
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.widgets.DockSpacer
@@ -79,14 +76,12 @@ fun ShowRooms(
 	val scrollState = rememberScrollState()
 	if (isDisplayed)
 		Scaffold(
-			topBar = { TopAppBar(title = { Text("my rooms") }) }
+			topBar = { TopAppBar(title = { Text("my rooms", color = MainTextCC) }, backgroundColor = BackgroundCC) }
 		) {
 			LazyColumn(
 				modifier = Modifier
 					.fillMaxSize()
 					.background(BackgroundCC)
-
-
 			) {
 				itemsIndexed(ArrayList(rooms.values)) { _, item ->
 					RoomCard(item.roomID, view, Modifier.padding(top = 9.dp))
@@ -103,16 +98,14 @@ fun RoomCard(
 	modifier: Modifier = Modifier
 ) {
 	val room = Cache.Data.rooms[id]!!
-	Card(
+	Box(
 		modifier = modifier
 			.fillMaxWidth()
 			.clickable {
 				view.mainNavController.navigate(Screen.RoomMessages(id).routeWithArgs,)
 			},
-		shape = RoundedCornerShape(17.dp),
-		backgroundColor = RoomCardBackgroundCC,
-		elevation = 4.dp
-	) {
+	)
+	{
 		Row(
 			verticalAlignment = Alignment.CenterVertically
 		) {
@@ -126,9 +119,12 @@ fun RoomCard(
 					.clip(CircleShape)
 			)
 			Column(modifier = Modifier.fillMaxWidth()) {
-				Text(text = "(id:${room.roomID}) ${room.name}")
-				Text(text = room.view.name)
-				Text(text = room.lastMsgID.toString())
+				Text(text = "(id:${room.roomID}) ${room.name}",
+					color = MainTextCC)
+				Text(text = room.view.name,
+					color = MainTextCC)
+				Text(text = room.lastMsgID.toString(),
+					color = MainTextCC)
 			}
 		}
 	}

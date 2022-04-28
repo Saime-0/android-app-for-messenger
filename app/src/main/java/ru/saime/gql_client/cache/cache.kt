@@ -21,7 +21,6 @@ object Cache {
 
 	object Data {
 		val rooms: MutableMap<Int, Room> = hashMapOf()
-		val messages: MutableMap<Int, Message> = hashMapOf()
 		val employees: MutableMap<Int, Employee> = hashMapOf()
 		val tags: MutableMap<Int, Tag> = hashMapOf()
 	}
@@ -38,13 +37,14 @@ data class Room(
 	val view: RoomType,
 //	val lastMsgRead: Int,
 	val lastMsgID: Int,
+	val lastMsgRead: Int,
+	val messages: MutableMap<Int, Message> = hashMapOf()
 )
 
 data class Employee(
 	val empID: Int,
 	val firstName: String,
 	val lastName: String,
-	val joinedAt: Int,
 	val tagIDs: List<Int> = emptyList(),
 )
 
@@ -52,7 +52,7 @@ data class Message(
 	val msgID: Int,
 	val roomID: Int,
 	val empID: Int,
-	val targetID: Int,
+	val targetID: Int?,
 	val body: String,
 	val createdAt: Int,
 )

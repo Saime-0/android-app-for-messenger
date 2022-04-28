@@ -37,8 +37,8 @@ fun Login(view: View) {
 				horizontalAlignment = Alignment.CenterHorizontally,
 				verticalArrangement = Arrangement.SpaceAround,
 			) {
-				TextField(value = login, onValueChange = { login = it })
-				TextField(value = pass, onValueChange = { pass = it })
+				OutlinedTextField(value = login, onValueChange = { login = it }, label = { Text("Эл. почта")})
+				OutlinedTextField(value = pass, onValueChange = { pass = it }, label = { Text("Пароль")})
 				Button(onClick = {
 					CoroutineScope(Dispatchers.Main).launch {
 						view.loginByCredentials(login, pass) { success, err ->

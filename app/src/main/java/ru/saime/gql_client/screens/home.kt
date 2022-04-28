@@ -31,7 +31,7 @@ fun Home(view: View) {
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.background(BackgroundCC)
+//			.background(BackgroundCC)
 	) {
 		NavHost(
 			navController = navController,

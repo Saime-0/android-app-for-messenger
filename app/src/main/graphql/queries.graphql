@@ -9,7 +9,6 @@ query ProfileQuery {
                 empID
                 firstName
                 lastName
-                joinedAt
                 tags {
                     tags {
                         name
@@ -39,7 +38,6 @@ query EmployeeQuery($empID: ID!) {
                 empID
                 firstName
                 lastName
-                joinedAt
                 tags {
                     tags {
                         tagID
@@ -67,9 +65,74 @@ query MeRoomsList($offset: Int, $limit: Int) {
                     name
                     view
                     lastMessageID
+                    lastMessageRead
                 }
             }
         }
 
+    }
+}
+
+query RoomMessagesByCreated(
+    $roomID: ID!
+    $count: Int!
+    $created: MsgCreated!
+    $startMsg: ID!
+) {
+    roomMessages(
+        byCreated: {
+            roomID: $roomID
+            count:$count
+            created: $created
+            startMsg: $startMsg
+        }
+    ) {
+        ... on AdvancedError {
+            error
+            code
+        }
+        ... on Messages {
+            ...MessagesForRoom
+        }
+    }
+}
+
+query RoomMessagesByRange(
+    $roomID: ID!
+    $start: ID!
+    $end: ID!
+) {
+    roomMessages(
+        byRange: {
+            roomID: $roomID
+            start: $start
+            end: $end
+        }
+    ) {
+        ... on AdvancedError {
+            error
+            code
+        }
+        ... on Messages {
+            ...MessagesForRoom
+        }
+    }
+}
+fragment MessagesForRoom on Messages {
+    messages {
+        msgID
+        room {
+            roomID
+        }
+        employee {
+            empID
+        }
+        targetMsg {
+            msgID
+        }
+        body
+        createdAt
+        prev
+        next
     }
 }

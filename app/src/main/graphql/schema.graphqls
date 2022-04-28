@@ -16,6 +16,24 @@ type AdvancedError {
   error: String!
 }
 
+input ByCreated {
+  roomID: ID!
+
+  startMsg: ID!
+
+  created: MsgCreated!
+
+  count: Int!
+}
+
+input ByRange {
+  roomID: ID!
+
+  start: ID!
+
+  end: ID!
+}
+
 input CreateMessageInput {
   roomID: ID!
 
@@ -49,13 +67,11 @@ type Employee {
 
   lastName: String!
 
-  joinedAt: Int64!
-
   tags: Tags!
 }
 
 type Employees {
-  employees: [Employee!]
+  employees: [Employee!]!
 }
 
 union EmployeesResult = AdvancedError|Employees
@@ -171,7 +187,7 @@ type MemberAction {
 }
 
 type Members {
-  members: [Member!]
+  members: [Member!]!
 }
 
 type Message {
@@ -179,9 +195,13 @@ type Message {
 
   msgID: ID!
 
+  next: ID
+
+  prev: ID
+
   employee: Employee!
 
-  targetMsgID: Message
+  targetMsg: Message
 
   body: String!
 
@@ -189,12 +209,18 @@ type Message {
 }
 
 type Messages {
-  messages: [Message!]
+  messages: [Message!]!
 }
 
 union MessagesResult = AdvancedError|Messages
 
 union MoveRoomResult = AdvancedError|Successful
+
+enum MsgCreated {
+  AFTER
+
+  BEFORE
+}
 
 type Mutation {
   login(input: LoginInput!): LoginResult!
@@ -247,6 +273,8 @@ type Query {
 
   messages(find: FindMessages!, params: Params): MessagesResult!
 
+  roomMessages(byCreated: ByCreated, byRange: ByRange): MessagesResult!
+
   rooms(find: FindRooms!, params: Params): RoomsResult!
 
   tags(tagIDs: [Int!], params: Params): TagsResult!
@@ -281,7 +309,7 @@ enum RoomType {
 }
 
 type Rooms {
-  rooms: [Room!]
+  rooms: [Room!]!
 }
 
 union RoomsResult = AdvancedError|Rooms
@@ -309,7 +337,7 @@ type Tag {
 }
 
 type Tags {
-  tags: [Tag!]
+  tags: [Tag!]!
 }
 
 union TagsResult = AdvancedError|Tags

@@ -1,6 +1,8 @@
 package ru.saime.gql_client
 
 import androidx.compose.ui.unit.dp
+import java.text.SimpleDateFormat
+import java.util.*
 
 const val PrefTableName = "user-table"
 const val PrefRefreshTokenKey = "rt"
@@ -12,3 +14,15 @@ const val MyToken = "Bearer eyJUeXAiOiJKV1QiLCJBbGciOiJIUzI1NiIsIkN0eSI6IiJ9.eyJ
 
 
 val DockHeight = 70.dp
+
+const val CountOfOrderedMessages = 20
+
+object DateFormats {
+	private val messageDateFormat =
+		SimpleDateFormat("HH:mm", Locale.US)
+//		SimpleDateFormat("HH:mm", Locale.forLanguageTag("ru"))
+
+	fun messageDate(epoch: Int): String {
+		return messageDateFormat.format(epoch * 1000L)
+	}
+}

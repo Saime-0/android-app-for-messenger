@@ -3,32 +3,26 @@ package ru.saime.gql_client.widgets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Divider
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ru.saime.gql_client.DividerDarkCC
 
 @Composable
-fun DividerCC(
+fun EmptyScreen(
 	modifier: Modifier = Modifier,
-	color: Color = DividerDarkCC
+	isDisplayed: Boolean = true,
+	text: String = "здесь пусто :(",
 ) {
-	Divider(
-		color = color,
-		modifier = modifier.fillMaxWidth()
-	)
-}
-@Composable
-fun DividerV2CC(
-	modifier: Modifier = Modifier,
-	color: Color = DividerDarkCC
-) {
+	if (isDisplayed)
 	Box(
 		modifier = modifier
-			.height(1.dp)
-			.fillMaxWidth()
-			.background(color)
-	)
-
+			.fillMaxSize(),
+		contentAlignment = Alignment.Center
+	) {
+		Text(text)
+	}
 }

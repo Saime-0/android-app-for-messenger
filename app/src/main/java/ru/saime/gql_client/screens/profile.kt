@@ -1,11 +1,11 @@
 package ru.saime.gql_client.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 import ru.saime.gql_client.*
 import ru.saime.gql_client.R
 import ru.saime.gql_client.cache.Cache
-import ru.saime.gql_client.widgets.DividerCC
+import ru.saime.gql_client.widgets.DividerV2CC
 import ru.saime.gql_client.widgets.DockSpacer
 import java.util.*
 
@@ -47,7 +47,7 @@ fun Profile(view: View, empID: Int, modifier: Modifier = Modifier) {
 		msg = isError.value.second,
 		modifier = Modifier.fillMaxSize()
 	)
-	ShowProfile(isDisplayed = isOk.value, empID = empID)
+	ShowProfileV2(isDisplayed = isOk.value, empID = empID)
 	Box {
 //		println(!(isError.value.first || isOk.value))
 		if (!(isError.value.first || isOk.value))
@@ -69,53 +69,114 @@ fun Profile(view: View, empID: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ShowProfile(
+fun ShowProfileV2(
 	isDisplayed: Boolean,
 	empID: Int,
 	modifier: Modifier = Modifier
 ) {
-	val scrollState = rememberScrollState()
+	val scrollStateProfile = rememberScrollState()
+	val scrollStateTags = rememberScrollState()
 	if (isDisplayed)
 		Column(
 			modifier = modifier
-				.verticalScroll(scrollState),
-			verticalArrangement = Arrangement.spacedBy(8.dp),
-			horizontalAlignment = Alignment.CenterHorizontally
+				.padding(top = 20.dp)
+				.verticalScroll(scrollStateProfile),
+			verticalArrangement = Arrangement.spacedBy(28.dp),
+			horizontalAlignment = Alignment.Start
 		) {
-			Image(
-				painter = painterResource(id = R.drawable.avatar),
-				contentDescription = "",
-				modifier = Modifier
-					.padding(36.dp)
-					.clip(RoundedCornerShape(30.dp))
-			)
-			Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]?.let {
-				TextLargeProfile("${it.firstName} ${it.lastName}")
-				TextMediumProfile("сотрудник № ${it.empID}", color = ProfileDimCC)
+			Row(
+				verticalAlignment = Alignment.Bottom
+			) {
+				Image(
+					painter = painterResource(id = R.drawable.avatar),
+					contentDescription = "",
+					modifier = Modifier
+//						.padding(36.dp)
+						.size(100.dp)
+						.clip(RoundedCornerShape(10.dp))
+				)
+				Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]?.let {
 
-				DividerCC(modifier = Modifier.padding(18.dp)) //
+					Column(
+						horizontalAlignment = Alignment.CenterHorizontally,
+					) {
+						TextLargeProfile("${it.firstName} ${it.lastName}")
+						TextMediumProfile("сотрудник № ${it.empID}", color = ProfileDimCC)
+
+						DividerV2CC(Modifier.padding(top = 18.dp, start = 20.dp, end = 20.dp))
+					}
+				}
+			}
 
 
-				if (empID == 0)
-				Column(
-					verticalArrangement = Arrangement.spacedBy(20.dp),
-					horizontalAlignment = Alignment.Start
+			if (empID == 0)
+				ProfileSection(
+					header = {
+						TextSmallProfile(
+							"Контакты:",
+							color = ProfileSelectionHeaderCC
+						)
+					},
 				) {
-					TextSmallProfile("Контакты:", color = ProfileSelectionHeaderCC)
-					TextValuesProfile(Date(it.joinedAt.toLong()).toString())
 					TextValuesProfile(text = Cache.Me.email)
 					TextValuesProfile(text = Cache.Me.phone)
 				}
-			}
+
+//			ProfileSection(
+//				modifier = Modifier
+//					.verticalScroll(scrollStateTags)
+//					.heightIn(0.dp, 400.dp),
+//				header = { TextSmallProfile("Теги:", color = ProfileSelectionHeaderCC) }
+//			) {
+//				if (Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID] != null)
+//				for (tagID in Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]!!.tagIDs) {
+//					Card(
+//						shape = RoundedCornerShape(10.dp)
+//					) {
+//						Text(Cache.Data.tags[tagID]?.name.toString())
+//					}
+//				}
+//			}
 			DockSpacer()
 		}
+
 }
+
+@Composable
+fun ProfileSection(
+	modifier: Modifier = Modifier,
+	header: @Composable () -> Unit = {},
+	content: @Composable () -> Unit = {}
+) {
+	Card(
+		modifier = Modifier.fillMaxWidth(),
+		shape = RoundedCornerShape(20.dp),
+		backgroundColor = ProfileSectionBackgroundCC,
+		elevation = 3.dp
+	) {
+		Column(
+			modifier
+				.fillMaxSize()
+				.padding(20.dp),
+			verticalArrangement = Arrangement.spacedBy(12.dp)
+		) {
+			header.invoke()
+			Column(
+				modifier = modifier.padding(start = 8.dp),
+				verticalArrangement = Arrangement.spacedBy(8.dp)
+			) {
+				content.invoke()
+			}
+		}
+	}
+}
+
 
 @Composable
 fun TextLargeProfile(
 	text: String,
 	color: Color = MainTextCC,
-	fontSize: TextUnit = 30.sp
+	fontSize: TextUnit = 27.sp
 ) {
 	Text(
 		text = text.uppercase(Locale.getDefault()),
@@ -162,7 +223,7 @@ fun TextValuesProfile(
 	Text(
 		text = text,
 		color = color,
-		fontWeight = FontWeight.Medium,
+		fontWeight = FontWeight.Normal,
 		fontFamily = FontFamily.SansSerif,
 		fontSize = fontSize
 	)

@@ -7,6 +7,7 @@ import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
 import pkg.*
+import pkg.type.MsgCreated
 import ru.saime.gql_client.cache.*
 
 
@@ -72,15 +73,12 @@ class View(
 				.execute()
 			if (response.data != null)
 				if (response.data!!.employees.onEmployees != null)
-					if (response.data!!.employees.onEmployees!!.employees != null)
-						if (response.data!!.employees.onEmployees!!.employees!!.isNotEmpty()) {
-							Cache.fillEmployee(response.data!!.employees.onEmployees!!.employees!![0])
-							Cache.LoadedData[LoadedDataType.Me] = Unit
-							callback.invoke(null)
-						} else
-							callback.invoke("not-found")
-					else
-						callback.invoke(response.data!!.employees.onAdvancedError!!.toString())
+					if (response.data!!.employees.onEmployees!!.employees!!.isNotEmpty()) {
+						Cache.fillEmployee(response.data!!.employees.onEmployees!!.employees!![0])
+						Cache.LoadedData[LoadedDataType.Me] = Unit
+						callback.invoke(null)
+					} else
+						callback.invoke("not-found")
 				else if (response.errors != null)
 					callback.invoke(response.errors!!.toString())
 		} catch (ex: Exception) {
@@ -159,13 +157,47 @@ class View(
 				.execute()
 			if (response.data != null)
 				if (response.data!!.me.onMe != null) {
-					if (response.data!!.me.onMe!!.rooms.rooms != null)
-						Cache.fillRooms(response.data!!.me.onMe!!.rooms)
+					Cache.fillRooms(response.data!!.me.onMe!!.rooms)
 					print(response.data!!.me.onMe!!.rooms.rooms)
 					Cache.LoadedData[LoadedDataType.RoomList] = Unit
 					callback.invoke(null)
 				} else
 					callback.invoke(response.data!!.me.onAdvancedError!!.toString())
+			else if (response.errors != null)
+				callback.invoke(response.errors!!.toString())
+		} catch (ex: Exception) {
+			println(ex)
+			callback.invoke(ex.toString())
+		}
+		return
+	}
+
+	suspend fun orderRoomMessages(
+		roomID: Int,
+		created: MsgCreated,
+		startMsg: Int,
+		callback: (err: String?) -> Unit
+	) {
+		println("попытка запросить orderRoomMessages")
+		val response: ApolloResponse<RoomMessagesByCreatedQuery.Data>
+		try {
+			response = apolloClient
+				.query(
+					RoomMessagesByCreatedQuery(
+						roomID = roomID,
+						created = created,
+						startMsg = startMsg,
+						count = CountOfOrderedMessages,
+					)
+				)
+				.addHttpHeader("authorization", accessToken)
+				.execute()
+			if (response.data != null)
+				if (response.data!!.roomMessages.onMessages != null) {
+					Cache.fillRoomMessages(response.data!!.roomMessages.onMessages!!.messagesForRoom)
+					callback.invoke(null)
+				} else
+					callback.invoke(response.data!!.roomMessages.onAdvancedError!!.toString())
 			else if (response.errors != null)
 				callback.invoke(response.errors!!.toString())
 		} catch (ex: Exception) {
