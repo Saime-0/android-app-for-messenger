@@ -56,9 +56,6 @@ fun Login(view: View) {
 				}) {
 					Text(text = "login")
 				}
-				Button(onClick = { /*TODO*/ }) {
-					Text(text = "profile")
-				}
 			}
 		}
 	}

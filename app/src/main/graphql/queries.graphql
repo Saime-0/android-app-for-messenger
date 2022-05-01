@@ -6,15 +6,7 @@ query ProfileQuery {
         }
         ... on Me {
             employee {
-                empID
-                firstName
-                lastName
-                tags {
-                    tags {
-                        name
-                        tagID
-                    }
-                }
+               ...FullEmployee
             }
             personal {
                 email
@@ -34,17 +26,7 @@ query EmployeeQuery($empID: ID!) {
             code
         }
         ... on Employees {
-            employees {
-                empID
-                firstName
-                lastName
-                tags {
-                    tags {
-                        tagID
-                        name
-                    }
-                }
-            }
+            ... FullEmployees
         }
     }
 }
@@ -60,13 +42,7 @@ query MeRoomsList($offset: Int, $limit: Int) {
                 offset: $offset
                 limit: $limit
             }) {
-                rooms {
-                    roomID
-                    name
-                    view
-                    lastMessageID
-                    lastMessageRead
-                }
+                ...RoomsWithoutMembers
             }
         }
 
@@ -85,6 +61,32 @@ query RoomMessagesByCreated(
             count:$count
             created: $created
             startMsg: $startMsg
+        }
+    ) {
+        ... on AdvancedError {
+            error
+            code
+        }
+        ... on Messages {
+            ...MessagesForRoom
+        }
+    }
+}
+
+query FindMessages(
+    $roomID: ID
+    $msgID: ID
+    $empID: ID
+    $targetID: ID
+    $textFragment: String
+) {
+    messages(
+        find: {
+            roomID: $roomID
+            msgID: $msgID
+            empID: $empID
+            targetID: $targetID
+            textFragment: $textFragment
         }
     ) {
         ... on AdvancedError {
@@ -118,6 +120,10 @@ query RoomMessagesByRange(
         }
     }
 }
+
+
+
+
 fragment MessagesForRoom on Messages {
     messages {
         msgID
@@ -134,5 +140,40 @@ fragment MessagesForRoom on Messages {
         createdAt
         prev
         next
+    }
+}
+fragment FullTag on Tag {
+    tagID
+    name
+}
+fragment FullTags on Tags {
+    tags {
+        ...FullTag
+    }
+}
+fragment FullEmployee on Employee {
+    empID
+    firstName
+    lastName
+    tags {
+        ...FullTags
+    }
+}
+fragment FullEmployees on Employees {
+    employees {
+        ...FullEmployee
+    }
+}
+fragment RoomWithoutMembers on Room {
+    roomID
+    name
+    view
+    lastMessageID
+    lastMessageRead
+    prevRoomID
+}
+fragment RoomsWithoutMembers on Rooms {
+    rooms {
+        ...RoomWithoutMembers
     }
 }

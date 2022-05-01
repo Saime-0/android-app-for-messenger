@@ -51,7 +51,7 @@ fun Rooms(
 	)
 	ShowRooms(isDisplayed = isOk.value, view, modifier)
 	Box {
-		if (!(isError.value.first || isOk.value))
+		if (!(isError.value.first || isOk.value  || isLoading.value))
 			CoroutineScope(Dispatchers.Main).launch {
 				isLoading.value = true
 				view.orderMeRooms { err ->

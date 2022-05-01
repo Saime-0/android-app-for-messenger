@@ -22,6 +22,7 @@ fun ErrorComponent(
 	msg: String,
 	modifier: Modifier = Modifier
 ) {
+	println("загружается ErrorComponent? $isDisplayed")
 	if (isDisplayed)
 		Box(
 			modifier = modifier

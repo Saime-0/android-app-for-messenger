@@ -17,6 +17,7 @@ fun EmptyScreen(
 	isDisplayed: Boolean = true,
 	text: String = "здесь пусто :(",
 ) {
+	println("загружается EmptyScreen? $isDisplayed")
 	if (isDisplayed)
 	Box(
 		modifier = modifier

@@ -1,5 +1,9 @@
 package ru.saime.gql_client.cache
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import pkg.type.RoomType
 import java.util.*
 
@@ -11,7 +15,8 @@ enum class LoadedDataType {
 
 object Cache {
 
-	val LoadedData: MutableMap<LoadedDataType, Unit> = EnumMap<LoadedDataType, Unit>(LoadedDataType::class.java)
+	val LoadedData: MutableMap<LoadedDataType, Unit> =
+		EnumMap(LoadedDataType::class.java)
 
 	object Me {
 		var ID: Int = 0
@@ -26,26 +31,25 @@ object Cache {
 	}
 }
 
-//enum class RoomType {
-//	BLOG,
-//	TALK
-//}
-
 data class Room(
 	val roomID: Int,
 	val name: String,
 	val view: RoomType,
-//	val lastMsgRead: Int,
 	val lastMsgID: Int,
 	val lastMsgRead: Int,
-	val messages: MutableMap<Int, Message> = hashMapOf()
-)
+) {
+	val order = mutableStateListOf<Int>()
+	val messages = mutableMapOf<Int, Message>()
+//	val messages = mutableStateMapOf<Int, Message>()
+//	val messages: SortedMap<Int, Message> = sortedMapOf(comparator = compareByDescending { it })
+//	val messages: MutableState<SortedMap<Int, Message>> = mutableStateOf(sortedMapOf<Int, Message>(comparator = compareByDescending { it }))
+}
 
 data class Employee(
 	val empID: Int,
 	val firstName: String,
 	val lastName: String,
-	val tagIDs: List<Int> = emptyList(),
+	val tagIDs: MutableList<Int> = mutableListOf(),
 )
 
 data class Message(
@@ -55,9 +59,11 @@ data class Message(
 	val targetID: Int?,
 	val body: String,
 	val createdAt: Int,
+	var prev: Int?,
+	var next: Int?,
 )
 
-data class Tag (
+data class Tag(
 	val tagID: Int,
 	val name: String,
 )

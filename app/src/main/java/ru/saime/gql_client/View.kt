@@ -57,7 +57,7 @@ class View(
 		return
 	}
 
-	suspend fun orderEmployeeProfile(empID: Int, callback: (err: String?) -> Unit) {
+	suspend fun orderEmployeeProfile(empID: Int, callback: (err: String?) -> Unit = {}) {
 		if (Cache.Data.employees.containsKey(empID)) {
 			println("EmployeeProfile empID = $empID - уже был запрошен")
 			callback.invoke(null)
@@ -73,8 +73,8 @@ class View(
 				.execute()
 			if (response.data != null)
 				if (response.data!!.employees.onEmployees != null)
-					if (response.data!!.employees.onEmployees!!.employees!!.isNotEmpty()) {
-						Cache.fillEmployee(response.data!!.employees.onEmployees!!.employees!![0])
+					if (response.data!!.employees.onEmployees!!.fullEmployees.employees.isNotEmpty()) {
+						Cache.fillEmployee(response.data!!.employees.onEmployees!!.fullEmployees.employees[0].fullEmployee)
 						Cache.LoadedData[LoadedDataType.Me] = Unit
 						callback.invoke(null)
 					} else
@@ -116,7 +116,7 @@ class View(
 
 	suspend fun refreshTokens(
 		callback: (err: String?) -> Unit
-	): Boolean  {
+	): Boolean {
 		val response = apolloClient
 			.mutation(RefreshTokensMutation(refreshToken, Optional.presentIfNotNull(sessionKey)))
 			.execute()
@@ -146,8 +146,7 @@ class View(
 		println("попытка запросить RoomList")
 		val response: ApolloResponse<MeRoomsListQuery.Data>
 		try {
-			response = apolloClient
-				.query(
+			response = apolloClient.query(
 					MeRoomsListQuery(
 						Optional.presentIfNotNull(0),
 						Optional.presentIfNotNull(20)
@@ -157,8 +156,7 @@ class View(
 				.execute()
 			if (response.data != null)
 				if (response.data!!.me.onMe != null) {
-					Cache.fillRooms(response.data!!.me.onMe!!.rooms)
-					print(response.data!!.me.onMe!!.rooms.rooms)
+					Cache.fillRooms(response.data!!.me.onMe!!.rooms.roomsWithoutMembers)
 					Cache.LoadedData[LoadedDataType.RoomList] = Unit
 					callback.invoke(null)
 				} else
@@ -176,28 +174,70 @@ class View(
 		roomID: Int,
 		created: MsgCreated,
 		startMsg: Int,
-		callback: (err: String?) -> Unit
+		callback: (err: String?) -> Unit = {}
 	) {
 		println("попытка запросить orderRoomMessages")
 		val response: ApolloResponse<RoomMessagesByCreatedQuery.Data>
 		try {
-			response = apolloClient
-				.query(
-					RoomMessagesByCreatedQuery(
-						roomID = roomID,
-						created = created,
-						startMsg = startMsg,
-						count = CountOfOrderedMessages,
-					)
+			response = apolloClient.query(
+				RoomMessagesByCreatedQuery(
+					roomID = roomID,
+					created = created,
+					startMsg = startMsg,
+					count = CountOfOrderedMessages,
 				)
+			)
 				.addHttpHeader("authorization", accessToken)
 				.execute()
 			if (response.data != null)
 				if (response.data!!.roomMessages.onMessages != null) {
-					Cache.fillRoomMessages(response.data!!.roomMessages.onMessages!!.messagesForRoom)
+					Cache.fillRoomMessages(
+						this,
+						response.data!!.roomMessages.onMessages!!.messagesForRoom
+					)
+					println(Cache.Data.rooms[roomID]!!.messages)
 					callback.invoke(null)
 				} else
 					callback.invoke(response.data!!.roomMessages.onAdvancedError!!.toString())
+			else if (response.errors != null)
+				callback.invoke(response.errors!!.toString())
+		} catch (ex: Exception) {
+			println(ex)
+			callback.invoke(ex.toString())
+		}
+		return
+	}
+
+	suspend fun orderRoomMessage(
+		roomID: Int? = null,
+		msgID: Int? = null,
+		empID: Int? = null,
+		targetID: Int? = null,
+		textFragment: String? = null,
+		callback: (err: String?) -> Unit = {}
+	) {
+		println("попытка запросить orderRoomMessage")
+		val response: ApolloResponse<FindMessagesQuery.Data>
+		try {
+			response = apolloClient.query(
+				FindMessagesQuery(
+					roomID = Optional.presentIfNotNull(roomID),
+					msgID = Optional.presentIfNotNull(msgID),
+					empID = Optional.presentIfNotNull(empID),
+					targetID = Optional.presentIfNotNull(targetID),
+					textFragment = Optional.presentIfNotNull(textFragment),
+				)
+			).addHttpHeader("authorization", accessToken)
+			.execute()
+			if (response.data != null)
+				if (response.data!!.messages.onMessages != null) {
+					Cache.fillRoomMessages(
+						this,
+						response.data!!.messages.onMessages!!.messagesForRoom
+					)
+					callback.invoke(null)
+				} else
+					callback.invoke(response.data!!.messages.onAdvancedError!!.toString())
 			else if (response.errors != null)
 				callback.invoke(response.errors!!.toString())
 		} catch (ex: Exception) {

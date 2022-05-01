@@ -16,6 +16,7 @@ fun Loading(
 	isDisplayed: Boolean,
 	modifier: Modifier = Modifier
 ) {
+	println("загружается Loading? $isDisplayed")
 	if(isDisplayed)
 		Row(
 			modifier = modifier

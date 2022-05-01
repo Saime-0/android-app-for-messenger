@@ -2,6 +2,9 @@ package ru.saime.gql_client.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +29,7 @@ import ru.saime.gql_client.R
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.widgets.DividerV2CC
 import ru.saime.gql_client.widgets.DockSpacer
+import ru.saime.gql_client.widgets.EmptyScreen
 import java.util.*
 
 
@@ -50,7 +54,7 @@ fun Profile(view: View, empID: Int, modifier: Modifier = Modifier) {
 	ShowProfileV2(isDisplayed = isOk.value, empID = empID)
 	Box {
 //		println(!(isError.value.first || isOk.value))
-		if (!(isError.value.first || isOk.value))
+		if (!(isError.value.first || isOk.value || isLoading.value))
 			CoroutineScope(Dispatchers.Main).launch {
 				isLoading.value = true
 				if (empID == 0)
@@ -75,27 +79,28 @@ fun ShowProfileV2(
 	modifier: Modifier = Modifier
 ) {
 	val scrollStateProfile = rememberScrollState()
-	val scrollStateTags = rememberScrollState()
+	val scrollStateTags = rememberLazyListState()
 	if (isDisplayed)
-		Column(
-			modifier = modifier
-				.padding(top = 20.dp)
-				.verticalScroll(scrollStateProfile),
-			verticalArrangement = Arrangement.spacedBy(28.dp),
-			horizontalAlignment = Alignment.Start
-		) {
-			Row(
-				verticalAlignment = Alignment.Bottom
+		Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]?.let {
+
+			Column(
+				modifier = modifier
+					.padding(top = 20.dp)
+					.verticalScroll(scrollStateProfile),
+				verticalArrangement = Arrangement.spacedBy(28.dp),
+				horizontalAlignment = Alignment.Start
 			) {
-				Image(
-					painter = painterResource(id = R.drawable.avatar),
-					contentDescription = "",
-					modifier = Modifier
+				Row(
+					verticalAlignment = Alignment.Bottom
+				) {
+					Image(
+						painter = painterResource(id = R.drawable.avatar),
+						contentDescription = "",
+						modifier = Modifier
 //						.padding(36.dp)
-						.size(100.dp)
-						.clip(RoundedCornerShape(10.dp))
-				)
-				Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]?.let {
+							.size(100.dp)
+							.clip(RoundedCornerShape(10.dp))
+					)
 
 					Column(
 						horizontalAlignment = Alignment.CenterHorizontally,
@@ -105,41 +110,35 @@ fun ShowProfileV2(
 
 						DividerV2CC(Modifier.padding(top = 18.dp, start = 20.dp, end = 20.dp))
 					}
+
 				}
-			}
 
 
-			if (empID == 0)
+				if (empID == 0)
+					ProfileSection(
+						header = {
+							TextSmallProfile(
+								"Контакты:",
+								color = ProfileSelectionHeaderCC
+							)
+						},
+					) {
+						TextValuesProfile(Cache.Me.email)
+						TextValuesProfile(Cache.Me.phone)
+					}
+
 				ProfileSection(
-					header = {
-						TextSmallProfile(
-							"Контакты:",
-							color = ProfileSelectionHeaderCC
-						)
-					},
+					modifier = Modifier
+						.heightIn(0.dp, 400.dp),
+					header = { TextSmallProfile("Должности:", color = ProfileSelectionHeaderCC) }
 				) {
-					TextValuesProfile(text = Cache.Me.email)
-					TextValuesProfile(text = Cache.Me.phone)
+					for (tagID in it.tagIDs) {
+						TextValuesProfile(Cache.Data.tags[tagID]?.name.toString())
+					}
 				}
-
-//			ProfileSection(
-//				modifier = Modifier
-//					.verticalScroll(scrollStateTags)
-//					.heightIn(0.dp, 400.dp),
-//				header = { TextSmallProfile("Теги:", color = ProfileSelectionHeaderCC) }
-//			) {
-//				if (Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID] != null)
-//				for (tagID in Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]!!.tagIDs) {
-//					Card(
-//						shape = RoundedCornerShape(10.dp)
-//					) {
-//						Text(Cache.Data.tags[tagID]?.name.toString())
-//					}
-//				}
-//			}
-			DockSpacer()
+				DockSpacer()
+			}
 		}
-
 }
 
 @Composable
@@ -156,7 +155,8 @@ fun ProfileSection(
 	) {
 		Column(
 			modifier
-				.fillMaxSize()
+//				.fillMaxSize()
+				.fillMaxWidth()
 				.padding(20.dp),
 			verticalArrangement = Arrangement.spacedBy(12.dp)
 		) {
@@ -217,13 +217,13 @@ fun TextSmallProfile(
 @Composable
 fun TextValuesProfile(
 	text: String,
-	color: Color = ProfileYellowCC,
+	color: Color = MainTextCC,
 	fontSize: TextUnit = 18.sp
 ) {
 	Text(
 		text = text,
 		color = color,
-		fontWeight = FontWeight.Normal,
+		fontWeight = FontWeight.Light,
 		fontFamily = FontFamily.SansSerif,
 		fontSize = fontSize
 	)
