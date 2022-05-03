@@ -13,19 +13,17 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun Loading(
-	isDisplayed: Boolean,
 	modifier: Modifier = Modifier
 ) {
-	println("загружается Loading? $isDisplayed")
-	if(isDisplayed)
-		Row(
-			modifier = modifier
-				.fillMaxWidth()
-				.padding(50.dp),
-			horizontalArrangement = Arrangement.Center
-		) {
-			CircularProgressIndicator(
-				color = Color.Red
-			)
-		}
+	println("загружается Loading")
+	Row(
+		modifier = modifier
+			.fillMaxWidth()
+			.padding(50.dp),
+		horizontalArrangement = Arrangement.Center
+	) {
+		CircularProgressIndicator(
+			color = Color.Red
+		)
+	}
 }

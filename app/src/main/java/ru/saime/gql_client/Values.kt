@@ -9,20 +9,23 @@ const val PrefRefreshTokenKey = "rt"
 const val PrefMeEmpIDKey = "id"
 const val PrefMeFnameKey = "fn"
 const val PrefMeLnameKey = "ln"
+const val AuthorizationHeader = "Authorization"
 
 const val MyToken = "Bearer eyJUeXAiOiJKV1QiLCJBbGciOiJIUzI1NiIsIkN0eSI6IiJ9.eyJlbXBsb3llZWlkIjo4LCJleHAiOjE2NTA1NzcxNzYsImlhdCI6MTY0OTcxMzE3Nn0.9ukEEa-Vgd-59MbEJOiS7TA353MAoNq_Nxbm-r6QYi8"
 
 
 val DockHeight = 70.dp
+val MessageInputMinHeight = 40.dp
 
 const val CountOfOrderedMessages = 20
 
-object DateFormats {
-	private val messageDateFormat =
-		SimpleDateFormat("HH:mm", Locale.US)
-//		SimpleDateFormat("HH:mm", Locale.forLanguageTag("ru"))
+const val MustLengthSessionKey = 20
 
-	fun messageDate(epoch: Int): String {
-		return messageDateFormat.format(epoch * 1000L)
-	}
+
+object DateFormats {
+	private val messageDateFormat = SimpleDateFormat("HH:mm", Locale.US)
+	fun messageDate(epoch: Long): String = messageDateFormat.format(epoch)
+
+	private val tagDateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
+	fun tagDate(epoch: Long): String = tagDateFormat.format(epoch)
 }

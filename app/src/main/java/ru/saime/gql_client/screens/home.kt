@@ -1,6 +1,5 @@
 package ru.saime.gql_client.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,20 +7,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import ru.saime.gql_client.BackgroundCC
-import ru.saime.gql_client.View
+import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.widgets.Dock
 
 @Composable
-fun Home(view: View) {
+fun Home(backend: Backend) {
 	val navController = rememberNavController()
 
 	// state
@@ -39,7 +36,7 @@ fun Home(view: View) {
 		modifier = Modifier.padding(14.dp)
 		) {
 //			composable(Screen.Guide.route) { Guide() }
-			composable(Screen.Rooms.routeRef) { Rooms(view) }
+			composable(Screen.Rooms.routeRef) { Rooms(backend) }
 			composable(
 				Screen.Profile().routeRef,
 				arguments = listOf(navArgument(Screen.Profile.Args.EmpID.name) {
@@ -48,7 +45,7 @@ fun Home(view: View) {
 			) {
 				if (it.arguments != null) {
 					Profile(
-						view = view,
+						backend = backend,
 						empID = it.arguments!!.getInt(Screen.Profile.Args.EmpID.name),
 					)
 					profileID = it.arguments!!.getInt(Screen.Profile.Args.EmpID.name)

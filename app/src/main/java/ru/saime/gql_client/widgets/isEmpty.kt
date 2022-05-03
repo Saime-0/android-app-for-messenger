@@ -13,8 +13,8 @@ import ru.saime.gql_client.DividerDarkCC
 
 @Composable
 fun EmptyScreen(
+	isDisplayed: Boolean,
 	modifier: Modifier = Modifier,
-	isDisplayed: Boolean = true,
 	text: String = "здесь пусто :(",
 ) {
 	println("загружается EmptyScreen? $isDisplayed")

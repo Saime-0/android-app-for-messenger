@@ -183,7 +183,7 @@ type MemberAction {
 
   empID: ID!
 
-  RoomIDs: [ID!]!
+  roomIDs: [ID!]!
 }
 
 type Members {
@@ -250,6 +250,8 @@ type NewMessage {
   body: String!
 
   createdAt: Int64!
+
+  prev: ID
 }
 
 input Params {

@@ -1,10 +1,11 @@
 package ru.saime.gql_client.cache
 
-import pkg.EmployeeQuery
-import pkg.MeRoomsListQuery
 import pkg.ProfileQuery
+import pkg.SubscribeSubscription
 import pkg.fragment.*
-import ru.saime.gql_client.View
+import ru.saime.gql_client.backend.Backend
+import ru.saime.gql_client.backend.orderEmployeeProfile
+import ru.saime.gql_client.backend.orderRoomMessage
 import ru.saime.gql_client.cache.Cache.Me.ID
 import ru.saime.gql_client.cache.Cache.Me.email
 import ru.saime.gql_client.cache.Cache.Me.phone
@@ -52,7 +53,7 @@ fun Cache.fillTag(data: FullTag) {
 	)
 }
 
-suspend fun Cache.fillRoomMessages(view: View, messages: MessagesForRoom) {
+suspend fun Cache.fillRoomMessages(backend: Backend, messages: MessagesForRoom) {
 	for (msg in messages.messages) {
 		if (Cache.Data.rooms[msg.room.roomID] != null) {
 			Cache.Data.rooms[msg.room.roomID]!!.messages[msg.msgID] = Message(
@@ -61,32 +62,57 @@ suspend fun Cache.fillRoomMessages(view: View, messages: MessagesForRoom) {
 				empID = msg.employee.empID,
 				targetID = msg.targetMsg?.msgID,
 				body = msg.body,
-				createdAt = msg.createdAt,
+				createdAt = msg.createdAt * 1000L,
 				prev = msg.prev,
 				next = msg.next,
 			)
-			if (!Cache.Data.rooms[msg.room.roomID]!!.order.contains(msg.msgID)) {
-				Cache.Data.rooms[msg.room.roomID]!!.order.let { list ->
-					list.add(msg.msgID)
-					list.sortByDescending { it }
+			if (!Cache.Data.rooms[msg.room.roomID]!!.orderPaired.contains(OrderPair(msg.msgID, msg.employee.empID))) {
+				Cache.Data.rooms[msg.room.roomID]!!.orderPaired.let { list ->
+					list.add(OrderPair(msg.msgID, msg.employee.empID))
+					list.sortByDescending { it.messageID }
 				}
 			}
-//			Cache.Data.rooms[msg.room.roomID]!!.messages[msg.msgID]
-			if (
-				Cache.Data.rooms[msg.room.roomID]!!.messages[msg.msgID]!!.targetID != null
-				&& Cache.Data.rooms[msg.room.roomID]!!.messages[
-						Cache.Data.rooms[msg.room.roomID]!!.messages[msg.msgID]!!.targetID!!
-				] == null
-			) {
-				view.orderRoomMessage(roomID = msg.room.roomID, msgID = Cache.Data.rooms[msg.room.roomID]!!.messages[msg.msgID]!!.targetID!!)
-			}
-			if (
-				Cache.Data.employees[
-						Cache.Data.rooms[msg.room.roomID]!!.messages[msg.msgID]!!.empID
-				] == null
-			) {
-				view.orderEmployeeProfile(Cache.Data.rooms[msg.room.roomID]!!.messages[msg.msgID]!!.empID)
-			}
+
+			Cache.orderTargetMessageIfNotExists(backend, Cache.Data.rooms[msg.room.roomID]!!.messages[msg.msgID]!!)
+			Cache.orderEmployeeMessageIfNotExists(backend, Cache.Data.rooms[msg.room.roomID]!!.messages[msg.msgID]!!)
+
 		}
 	}
+}
+
+suspend fun Cache.orderTargetMessageIfNotExists(backend: Backend, msg: Message) {
+	if (
+		msg.targetID != null
+		&& Cache.Data.rooms[msg.roomID]!!.messages[msg.targetID] == null
+	) {
+		backend.orderRoomMessage(roomID = msg.roomID, msgID = msg.targetID)
+	}
+}
+
+suspend fun Cache.orderEmployeeMessageIfNotExists(backend: Backend, msg: Message) {
+	if (Cache.Data.employees[msg.empID] == null)
+		backend.orderEmployeeProfile(msg.empID)
+}
+
+suspend fun Cache.fillOnNewMessage(backend: Backend, msg: SubscribeSubscription.OnNewMessage) {
+	Cache.Data.rooms[msg.roomID]!!.messages[msg.msgID] = Message(
+		roomID = msg.roomID, // todo: order if not exists... why?
+		msgID = msg.msgID,
+		empID = msg.empID,
+		targetID = msg.targetMsgID,
+		body = msg.body,
+		createdAt = msg.createdAt * 1000L,
+		prev = msg.prev,
+		next = null,
+	)
+
+	if (!Cache.Data.rooms[msg.roomID]!!.orderPaired.contains(OrderPair(msg.msgID, msg.empID))) {
+		Cache.Data.rooms[msg.roomID]!!.orderPaired.let { list ->
+			list.add(OrderPair(msg.msgID, msg.empID))
+			list.sortByDescending { it.messageID }
+		}
+	}
+
+	Cache.orderTargetMessageIfNotExists(backend, Cache.Data.rooms[msg.roomID]!!.messages[msg.msgID]!!)
+	Cache.orderEmployeeMessageIfNotExists(backend, Cache.Data.rooms[msg.roomID]!!.messages[msg.msgID]!!)
 }

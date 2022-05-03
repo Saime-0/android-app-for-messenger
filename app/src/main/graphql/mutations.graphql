@@ -29,3 +29,19 @@ mutation RefreshTokens($refreshToken: String!, $sessionKey: String) {
         }
     }
 }
+
+mutation SendMessage($text: String!, $roomID: ID!, $replyID: ID) {
+    sendMsg(input: {
+        roomID: $roomID
+        body: $text
+        targetMsgID: $replyID
+    }) {
+        ... on AdvancedError {
+            code
+            error
+        }
+        ... on Successful {
+            success
+        }
+    }
+}

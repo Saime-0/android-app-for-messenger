@@ -31,15 +31,23 @@ object Cache {
 	}
 }
 
+data class OrderPair(
+	val messageID: Int,
+	val employeeID: Int
+)
+
 data class Room(
 	val roomID: Int,
 	val name: String,
 	val view: RoomType,
-	val lastMsgID: Int,
+	var lastMsgID: Int,
 	val lastMsgRead: Int,
 ) {
-	val order = mutableStateListOf<Int>()
+//	val order = mutableStateListOf<Int>()
+	val orderPaired = mutableStateListOf<OrderPair>()
 	val messages = mutableMapOf<Int, Message>()
+	val currentInputMessageText = mutableStateOf("")
+
 //	val messages = mutableStateMapOf<Int, Message>()
 //	val messages: SortedMap<Int, Message> = sortedMapOf(comparator = compareByDescending { it })
 //	val messages: MutableState<SortedMap<Int, Message>> = mutableStateOf(sortedMapOf<Int, Message>(comparator = compareByDescending { it }))
@@ -58,7 +66,7 @@ data class Message(
 	val empID: Int,
 	val targetID: Int?,
 	val body: String,
-	val createdAt: Int,
+	val createdAt: Long,
 	var prev: Int?,
 	var next: Int?,
 )

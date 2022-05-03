@@ -1,0 +1,65 @@
+mutation EditSubscription(
+    $sessionKey: String!
+    $action: EventSubjectAction!
+    $targetRooms: [ID!]!
+    $listenEvents: [EventType!]!
+) {
+    editListenEventCollection(
+        sessionKey: $sessionKey
+        action: $action
+        targetRooms: $targetRooms
+        listenEvents: $listenEvents
+    ) {
+        ... on AdvancedError {
+            code
+            error
+        }
+        ... on ListenCollection {
+            sessionKey
+            success
+            collection {
+                id
+                events
+            }
+        }
+    }
+}
+
+subscription Subscribe($sessionKey: String!) {
+    subscribe(
+        sessionKey: $sessionKey
+    ) {
+        event
+        body {
+            ... on NewMessage {
+                msgID
+                roomID
+                targetMsgID
+                empID
+                body
+                createdAt
+                prev
+            }
+            ... on DropTag {
+                tagID
+            }
+            ... on EmpTagAction {
+                action
+                empID
+                tagIDs
+            }
+
+            ... on MemberAction {
+                action
+                empID
+                roomIDs
+            }
+            ... on DropRoom {
+                roomID
+            }
+            ... on TokenExpired {
+                message
+            }
+        }
+    }
+}

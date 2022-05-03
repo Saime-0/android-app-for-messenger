@@ -6,95 +6,116 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.*
-import androidx.compose.runtime.R
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import pkg.type.EventSubjectAction
+import pkg.type.EventType
 import ru.saime.gql_client.*
+import ru.saime.gql_client.backend.Backend
+import ru.saime.gql_client.backend.editSubscribeList
+import ru.saime.gql_client.backend.orderMeRooms
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.navigation.Screen
+import ru.saime.gql_client.utils.ScreenStatus
+import ru.saime.gql_client.utils.equal
+import ru.saime.gql_client.utils.set
 import ru.saime.gql_client.widgets.DockSpacer
+import ru.saime.gql_client.widgets.EmptyScreen
 
 @Composable
 fun Rooms(
-	view: View,
-	modifier: Modifier = Modifier
+	backend: Backend
 ) {
-	val isLoading = remember {
-		mutableStateOf(false)
+	val screenStatus = rememberSaveable {
+		mutableStateOf(ScreenStatus.NONE)
 	}
-	val isError = remember {
-		mutableStateOf(Pair(false, ""))
-	}
-	val isOk = remember {
-		mutableStateOf(false)
-	}
+	var errMsg: String = remember { "" }
 
-	Loading(isDisplayed = isLoading.value, modifier = Modifier.fillMaxSize())
-	ErrorComponent(
-		isDisplayed = isError.value.first,
-		msg = isError.value.second,
-		modifier = Modifier.fillMaxSize()
-	)
-	ShowRooms(isDisplayed = isOk.value, view, modifier)
-	Box {
-		if (!(isError.value.first || isOk.value  || isLoading.value))
-			CoroutineScope(Dispatchers.Main).launch {
-				isLoading.value = true
-				view.orderMeRooms { err ->
-					if (err != null) isError.value = Pair(true, err) else isOk.value = true
+	SideEffect {
+		if (screenStatus.equal(ScreenStatus.NONE))
+			MainScope().launch {
+				screenStatus.set(ScreenStatus.LOADING)
+				backend.orderMeRooms().let { err ->
+					if (err != null) {
+						errMsg = err
+						screenStatus.set(ScreenStatus.ERROR)
+					} else {
+						backend.editSubscribeList(
+							action = EventSubjectAction.ADD,
+							listenEvents = listOf(EventType.all),
+							targetRooms = Cache.Data.rooms.keys.toList()
+						).let {
+							println(
+								if (it.isNullOrEmpty()) "editSubscribeList successful"
+								else "editSubscribeList failed with - $it"
+							)
+						}
+						screenStatus.set(ScreenStatus.OK)
+					}
 				}
-				isLoading.value = false
 			}
 	}
+
+	when (screenStatus.value) {
+		ScreenStatus.LOADING -> Loading(Modifier.fillMaxSize())
+		ScreenStatus.ERROR -> ErrorComponent(errMsg, Modifier.fillMaxSize())
+		ScreenStatus.OK -> ShowRooms(backend)
+		else -> {
+			EmptyScreen(true)
+		}
+	}
+
 
 }
 
 
 @Composable
 fun ShowRooms(
-	isDisplayed: Boolean,
-	view: View,
-	modifier: Modifier = Modifier
+	backend: Backend
 ) {
 	val rooms = remember {
 		Cache.Data.rooms
 	}
-	val scrollState = rememberScrollState()
-	if (isDisplayed)
-		Scaffold(
-			topBar = { TopAppBar(title = { Text("my rooms", color = MainTextCC) }, backgroundColor = BackgroundCC) }
-		) {
-			LazyColumn(
-				modifier = Modifier
-					.fillMaxSize()
-					.background(BackgroundCC)
-			) {
-				itemsIndexed(ArrayList(rooms.values)) { _, item ->
-					RoomCard(item.roomID, view, Modifier.padding(top = 9.dp))
-				}
-			}
-			DockSpacer()
+	val scrollState = rememberLazyListState()
+	Scaffold(
+		topBar = {
+			TopAppBar(
+				title = { Text("my rooms", color = MainTextCC) },
+				backgroundColor = BackgroundCC
+			)
 		}
+	) {
+		LazyColumn(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(BackgroundCC),
+			state = scrollState,
+		) {
+			itemsIndexed(ArrayList(rooms.values)) { _, item ->
+				RoomCard(item.roomID, backend, Modifier.padding(top = 9.dp))
+			}
+		}
+		DockSpacer()
+	}
 }
 
 @Composable
 fun RoomCard(
 	id: Int,
-	view: View,
+	backend: Backend,
 	modifier: Modifier = Modifier
 ) {
 	val room = Cache.Data.rooms[id]!!
@@ -102,7 +123,7 @@ fun RoomCard(
 		modifier = modifier
 			.fillMaxWidth()
 			.clickable {
-				view.mainNavController.navigate(Screen.RoomMessages(id).routeWithArgs,)
+				backend.mainNavController.navigate(Screen.RoomMessages(id).routeWithArgs)
 			},
 	)
 	{
@@ -119,12 +140,18 @@ fun RoomCard(
 					.clip(CircleShape)
 			)
 			Column(modifier = Modifier.fillMaxWidth()) {
-				Text(text = "(id:${room.roomID}) ${room.name}",
-					color = MainTextCC)
-				Text(text = room.view.name,
-					color = MainTextCC)
-				Text(text = room.lastMsgID.toString(),
-					color = MainTextCC)
+				Text(
+					text = "(id:${room.roomID}) ${room.name}",
+					color = MainTextCC
+				)
+				Text(
+					text = room.view.name,
+					color = MainTextCC
+				)
+				Text(
+					text = room.lastMsgID.toString(),
+					color = MainTextCC
+				)
 			}
 		}
 	}
