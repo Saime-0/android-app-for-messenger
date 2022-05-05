@@ -41,46 +41,43 @@ suspend fun Backend.editSubscribeList(
 suspend fun Backend.loginByCredentials(
 	login: String,
 	pass: String,
-	callback: (success: Boolean, err: String?) -> Unit
-) {
+): String? {
 	apolloClient
 		.mutation(LoginMutation(login, pass))
 		.execute().let { response ->
-			try {
+			return try {
 				accessToken = "Bearer ${response.data!!.login.onTokenPair!!.accessToken}"
 				refreshToken = response.data!!.login.onTokenPair!!.refreshToken
 				pref.edit(true) {
 					putString(PrefRefreshTokenKey, refreshToken)
 				}
 				println("успешно залогинился, токены обновлены, $accessToken")
-				callback.invoke(true, null)
+				orderMe()
+				null
 			} catch (ex: Exception) {
 				println(ex)
-				callback.invoke(false, response.data.toString() + "/// " + ex.toString())
-				return
+				response.data.toString() + "/// " + ex.toString()
 			}
 		}
 }
 
-suspend fun Backend.refreshTokens(
-	callback: (err: String?) -> Unit
-): Boolean {
-	val response = apolloClient
+suspend fun Backend.refreshTokens(): String? {
+	apolloClient
 		.mutation(RefreshTokensMutation(refreshToken, Optional.presentIfNotNull(sessionKey)))
-		.execute()
-	return try {
-		accessToken = "Bearer ${response.data!!.refreshTokens.onTokenPair!!.accessToken}"
-		this.refreshToken = response.data!!.refreshTokens.onTokenPair!!.refreshToken
-		pref.edit(true) {
-			putString(PrefRefreshTokenKey, refreshToken)
+		.execute().let { response ->
+			return try {
+				accessToken = "Bearer ${response.data!!.refreshTokens.onTokenPair!!.accessToken}"
+				this.refreshToken = response.data!!.refreshTokens.onTokenPair!!.refreshToken
+				pref.edit(true) {
+					putString(PrefRefreshTokenKey, refreshToken)
+				}
+				orderMe()
+				null
+			} catch (ex: Exception) {
+				println(ex)
+				response.data.toString() + "/// " + ex.toString()
+			}
 		}
-		callback.invoke(null)
-		true
-	} catch (ex: Exception) {
-		println(ex)
-		callback.invoke(response.data.toString() + "/// " + ex.toString())
-		false
-	}
 }
 
 

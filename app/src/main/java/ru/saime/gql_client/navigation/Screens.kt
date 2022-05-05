@@ -8,7 +8,6 @@ sealed class Screen(
 	val routeRef: String = name,
 	val routeWithArgs: String = routeRef
 ) {
-	object Home : Screen("Home")
 	object Members : Screen("Members")
 	object Login : Screen("Login")
 	object Loading : Screen("Loading")

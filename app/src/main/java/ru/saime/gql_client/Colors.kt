@@ -2,7 +2,9 @@ package ru.saime.gql_client
 
 import androidx.compose.ui.graphics.Color
 
-const val BackgroundCCLong = 0xFF1B1B1B
+val x = Color(0xFF20262C)
+//const val BackgroundCCLong = 0xFF1B1B1B // black
+const val BackgroundCCLong = 0xFF20262C // blue
 val BackgroundCC = Color(BackgroundCCLong)
 
 val MainTextCC = Color(0xFFCCCCCC)
@@ -19,7 +21,7 @@ val DockButtonTextCC = Color(0xFFD1D1D1)
 
 val ProfileSelectionHeaderCC = MainBrightCC
 val ProfileDimCC = Color(0xFF7E7E7E)
-val ProfileSectionBackgroundCC = Color(0xFF2E2E2E)
+val ProfileSectionBackgroundCC = Color(0xFF2B2D31)
 //val ProfileSectionBackgroundCC = Color(0xFF191919)
 //val ProfileSectionBackgroundCC = Color(0xF5171717)
 
@@ -29,13 +31,18 @@ val DividerDarkCC = Color(0xFF383838)
 val NavigationBarCC = Color(0xFF151515)
 //val NavigationBarCC = Color(0xFF181818)
 
-val MessageBackgroundCC = Color(0xFF2C2C2C)
-val MarkedMessageBackgroundCC = Color(0xFF444444)
-
+val DefaultTripleBarBackgroundCC = Color(0xFF29323C)
+val MessageBackgroundCC = Color(0xFF31333A)
+val MessageMeBackgroundCC = Color(0xFF374B5C)
+//val MessageMeBackgroundCC = Color(0xFF3B5469)
+val MarkedMessageBackgroundCC = Color(0xFF456580)
 val MessageReplyLineCC = MainBrightDoubleCC
 val MessageAuthorCC = MainBrightCC
 val MessageDataCC = ProfileDimCC
+val MessageTextCC = Color.White
 
 val SendingMessageIconCC = MainBrightCC
 
 val OnlineIndicatorCC = Color(0xFF59C75E)
+
+val LoginButtonBackgroundCC = Color(0xFF272727)

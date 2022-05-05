@@ -1,16 +1,16 @@
 package ru.saime.gql_client.backend
 
-import android.content.Context
-import android.content.Intent
+
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.network.ws.GraphQLWsProtocol
 import com.apollographql.apollo3.network.ws.SubscriptionWsProtocol
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.retryWhen
+import kotlinx.coroutines.launch
 import pkg.*
 import ru.saime.gql_client.*
 import ru.saime.gql_client.cache.*
@@ -24,11 +24,10 @@ class Backend(
 	val mainNavController: NavHostController,
 	val pref: SharedPreferences
 ) {
-
 	val vibrateHelper = VibrateHelper(activity.baseContext)
 	object States {
 		var SendingMessage: Boolean = false
-		var WebsocketConnectionEstablished: Boolean = false
+		var WebSocketConnectionEstablished: Boolean = false
 	}
 
 	var accessToken: String = ""
@@ -50,16 +49,16 @@ class Backend(
 
 	fun refreshTokenLoaded() = refreshToken != ""
 
+//	val clearEventFlow: Flow<EventResult> =
+
 	init {
 		refreshToken = pref.getString(PrefRefreshTokenKey, "") ?: ""
-//		MainScope().launch {
-//			subscribe()
-//		}
+		MainScope().launch { subscribe() }
 	}
 
 	suspend fun subscribe() {
 		println("оформляю подписку...")
-		States.WebsocketConnectionEstablished = true // Чтобы знать что подписка активна
+		States.WebSocketConnectionEstablished = true // Чтобы знать что подписка активна
 		apolloClient
 			.subscription(SubscribeSubscription(sessionKey))
 			.addHttpHeader(AuthorizationHeader, accessToken)
@@ -107,7 +106,7 @@ class Backend(
 
 			}
 		println("===>> subscribe failure")
-		States.WebsocketConnectionEstablished =
+		States.WebSocketConnectionEstablished =
 			false // А теперь снова можно будет подписать если конечно стоит проверка на это поле
 	}
 

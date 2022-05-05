@@ -2,12 +2,9 @@ package ru.saime.gql_client.backend
 
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import pkg.*
-import pkg.type.EventSubjectAction
-import pkg.type.EventType
 import pkg.type.MsgCreated
 import ru.saime.gql_client.AuthorizationHeader
 import ru.saime.gql_client.CountOfOrderedMessages
@@ -18,9 +15,9 @@ suspend fun Backend.orderMe(): String? {
 		println("Me уже был запрошен")
 		return null
 	}
-	if (!Backend.States.WebsocketConnectionEstablished) {
-		MainScope().launch { subscribe() }
-	}
+//	if (!Backend.States.WebSocketConnectionEstablished) {
+//		MainScope().launch { subscribe() }
+//	}
 	println("Попытка запросить Me")
 
 	val response: ApolloResponse<ProfileQuery.Data>

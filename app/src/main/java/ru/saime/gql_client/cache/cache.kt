@@ -1,5 +1,6 @@
 package ru.saime.gql_client.cache
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -37,6 +38,21 @@ data class OrderPair(
 	val employeeID: Int?
 )
 
+data class MarkedPair(
+	val messageID: MutableState<Int?>,
+	var indexInColumn: Int
+) {
+	fun clear() {
+		messageID.value = null
+		indexInColumn = 0
+	}
+
+	fun set(msgID: Int, columnIndex: Int) {
+		indexInColumn = columnIndex
+		messageID.value = msgID
+	}
+}
+
 data class Room(
 	val roomID: Int,
 	val name: String,
@@ -46,7 +62,8 @@ data class Room(
 ) {
 	val messagesOrder = mutableStateListOf<OrderPair>()
 	val currentInputMessageText = mutableStateOf("")
-	var markedMessage: MutableState<Int?> = mutableStateOf(null)
+	val lazyListState = LazyListState()
+	var markedMessage = MarkedPair(mutableStateOf(null), 0)
 }
 
 data class Employee(

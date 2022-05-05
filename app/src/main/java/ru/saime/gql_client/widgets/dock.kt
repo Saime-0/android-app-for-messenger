@@ -12,48 +12,21 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import ru.saime.gql_client.DockButtonCC
 import ru.saime.gql_client.DockButtonTextCC
 import ru.saime.gql_client.DockCC
 import ru.saime.gql_client.DockHeight
+import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.navigation.singleNavigate
 
-
-@Composable
-fun Dock(navController: NavController) {
-	val navigate = CategoryNavigate(navController)
-	Card(
-		modifier = Modifier
-			.fillMaxWidth(),
-		shape = RoundedCornerShape(17.dp),
-		backgroundColor = DockCC,
-		elevation = 10.dp
-	) {
-		Row(
-			modifier = Modifier.height(DockHeight),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.SpaceAround
-		) {
-			navigate.DockCategory(Screen.Guide.name, Screen.Guide.routeRef)
-			navigate.DockCategory(Screen.Rooms.name, Screen.Rooms.routeRef) // ----xfixme: RoomID from view.state.roomid
-			navigate.DockCategory(
-				Screen.Profile().name,
-				Screen.Profile(0).routeWithArgs,
-				modifier = Modifier.pointerInput(Unit){
-					detectTapGestures(
-						onDoubleTap = {
-							// perform some action here..
-						}
-					)
-				}
-			)
-		}
-	}
-}
-
 class CategoryNavigate(
-	private val navController: NavController
+	val backend: Backend,
+	val scaffoldState: ScaffoldState,
+	val scope: CoroutineScope
 ) {
 	@Composable
 	fun DockCategory(
@@ -63,7 +36,8 @@ class CategoryNavigate(
 	) {
 		Button(
 			onClick = {
-				navController.singleNavigate(route)
+				backend.mainNavController.navigate(route)
+				scope.launch { scaffoldState.drawerState.close() }
 			},
 			modifier = modifier,
 			colors = ButtonDefaults.buttonColors(

@@ -38,7 +38,7 @@ fun Gql_clientTheme(activity: MainActivity, darkTheme: Boolean = isSystemInDarkT
 			if (darkTheme) NavigationBarCC else Color.White
 		)
 		setStatusBarColor(
-			if (darkTheme) BackgroundCC else Color.White
+			if (darkTheme) DefaultTripleBarBackgroundCC else Color.White
 		)
 	}
 

@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,26 +37,28 @@ import ru.saime.gql_client.widgets.ScreenHorizontalPadding
 
 
 @Composable
-fun Profile(backend: Backend, empID: Int, modifier: Modifier = Modifier) {
-	val screenStatus = rememberSaveable {
+fun Profile(backend: Backend, empID: Int) {
+	val screenStatus = remember {
 		mutableStateOf(ScreenStatus.NONE)
 	}
 	var errMsg: String = remember { "" }
 
 	SideEffect {
-		if (screenStatus.equal(ScreenStatus.NONE))
+		if (empID != 0 && Cache.Data.employees[empID] == null || screenStatus.equal(ScreenStatus.NONE)) {
+//		if (screenStatus.equal(ScreenStatus.NONE))
+	println("надо сделать запрос потому то employees[empID] = ${Cache.Data.employees[empID] == null} а stratus = ${screenStatus.value}")
 			MainScope().launch {
 				screenStatus.set(ScreenStatus.LOADING)
-				run {
-					if (empID == 0) backend.orderMe()
-					else backend.orderEmployeeProfile(empID = empID)
-				}.let { err ->
+				backend.orderEmployeeProfile(empID = empID).let { err ->
 					if (err != null) {
 						errMsg = err
 						screenStatus.set(ScreenStatus.ERROR)
 					} else screenStatus.set(ScreenStatus.OK)
+
 				}
+
 			}
+		}
 
 	}
 
@@ -77,41 +80,61 @@ fun ShowProfileV2(
 ) {
 	val scrollStateProfile = rememberScrollState()
 	val scrollStateTags = rememberScrollState()
-	Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]?.let {
-		ScreenHorizontalPadding {
-			Column(
-				modifier = Modifier
-					.verticalScroll(scrollStateProfile),
-				verticalArrangement = Arrangement.spacedBy(23.dp),
-				horizontalAlignment = Alignment.CenterHorizontally
-			) {
-				Box(Modifier.padding(10.dp))
+	Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]?.let { emp ->
+		Scaffold(
+			topBar = {
+				TopAppBar(
+					navigationIcon = {
+						IconButton(onClick = {
+							backend.mainNavController.popBackStack()
+						}) {
+							Icon(Icons.Filled.ArrowBack, null, tint = MainTextCC)
+						}
+					},
+					contentColor = MainTextCC,
+					backgroundColor = DefaultTripleBarBackgroundCC,
+					title = { Text("Сотрудник № $empID")})
+			},
+			backgroundColor = BackgroundCC
+		) {
+
+				Column(
+					modifier = Modifier
+						.padding(horizontal = 16.dp)
+						.verticalScroll(scrollStateProfile),
+					verticalArrangement = Arrangement.spacedBy(23.dp),
+					horizontalAlignment = Alignment.CenterHorizontally
+				) {
+					Box(Modifier.padding(10.dp))
 //				Row( // строка с фотографией и описанием
 //					modifier = Modifier.fillMaxWidth(),
 //					verticalAlignment = Alignment.Bottom,
 //					horizontalArrangement = Arrangement.End
 //				) {
-				Image(
-					painter = painterResource(id = R.drawable.avatar),
-					contentDescription = "",
-					modifier = Modifier
+					Image(
+						painter = painterResource(id = R.drawable.avatar),
+						contentDescription = "",
+						modifier = Modifier
 //						.padding(36.dp)
-						.clip(RoundedCornerShape(10.dp))
-						.size(120.dp)
-				)
+							.clip(RoundedCornerShape(10.dp))
+							.size(120.dp)
+					)
 					Column( // описание
 						modifier = Modifier.fillMaxWidth(),
 						horizontalAlignment = Alignment.CenterHorizontally,
 						verticalArrangement = Arrangement.spacedBy(4.dp)
 					) {
 //						Box(modifier = Modifier.height(5.dp))
-						TextLargeProfile("${it.firstName} ${it.lastName}")
+						TextLargeProfile("${emp.firstName} ${emp.lastName}")
 //						TextOnlineStatusProfile("(сотрудник ${it.empID})")
 						Row(
 							verticalAlignment = Alignment.CenterVertically,
 							horizontalArrangement = Arrangement.spacedBy(4.dp)
 						) {
-							TextOnlineStatusProfile(if (true) "онлайн?" else "был в сети в 23:32", color = OnlineIndicatorCC)
+							TextOnlineStatusProfile(
+								if (true) "онлайн?" else "был в сети в 23:32",
+								color = OnlineIndicatorCC
+							)
 //							Card(
 //								Modifier.padding(top=4.dp).size(10.dp),
 //								shape = RoundedCornerShape(5.dp),
@@ -140,37 +163,36 @@ fun ShowProfileV2(
 //				}
 
 
-				if (empID == 0)
-					ProfileSection(
-						header = { TextSectionHeaderProfile("Контакты:") },
-					) {
-						TextValuesProfile(Cache.Me.email)
-						TextValuesProfile(Cache.Me.phone)
-					}
-
-				ProfileSection(
-					modifier = Modifier
-						.heightIn(0.dp, 400.dp)
-						.verticalScroll(scrollStateTags),
-					header = { TextSectionHeaderProfile("Должности:") }
-				) {
-					for (tagID in it.tagIDs) {
-						TextValuesProfile(Cache.Data.tags[tagID]?.name.toString())
-					}
-				}
-
-				if (empID == 0)
-					IconButton(
-						modifier = Modifier.size(66.dp),
-						onClick = {
-							backend.logout()
+					if (empID == 0)
+						ProfileSection(
+							header = { TextSectionHeaderProfile("Контакты:") },
+						) {
+							TextValuesProfile(Cache.Me.email)
+							TextValuesProfile(Cache.Me.phone)
 						}
+
+					ProfileSection(
+						modifier = Modifier
+							.heightIn(0.dp, 400.dp)
+							.verticalScroll(scrollStateTags),
+						header = { TextSectionHeaderProfile("Должности:") }
 					) {
-						Icon(Icons.Filled.ExitToApp, null, tint = Color.Red)
+						for (tagID in emp.tagIDs) {
+							TextValuesProfile(Cache.Data.tags[tagID]?.name.toString())
+						}
 					}
 
-				DockSpacer()
-			}
+					if (empID == 0)
+						IconButton(
+							modifier = Modifier.size(66.dp),
+							onClick = {
+								backend.logout()
+							}
+						) {
+							Icon(Icons.Filled.ExitToApp, null, tint = Color.Red)
+						}
+
+				}
 		}
 	}
 }

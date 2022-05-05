@@ -112,10 +112,8 @@ suspend fun Cache.fillOnNewMessage(backend: Backend, msg: SubscribeSubscription.
 	)
 
 	// сначала подгружаю недостающие данные, тк клиент после пополения списка не перерисует экран если бы я подгружал автора позже
-		println("1111 - первй пук")
 		Cache.orderTargetMessageIfNotExists(backend, msg.targetMsgID)
 		Cache.orderEmployeeMessageIfNotExists(backend, msg.employeeID)
-		println("222 - второй пук")
 
 
 	if (!Cache.Data.rooms[msg.roomID]!!.messagesOrder.contains(OrderPair(msg.msgID, msg.employeeID))) {
