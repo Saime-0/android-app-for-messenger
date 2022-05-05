@@ -35,7 +35,7 @@ subscription Subscribe($sessionKey: String!) {
                 msgID
                 roomID
                 targetMsgID
-                empID
+                employeeID
                 body
                 createdAt
                 prev

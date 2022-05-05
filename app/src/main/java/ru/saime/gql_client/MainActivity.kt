@@ -11,8 +11,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.apollographql.apollo3.ApolloClient
-import com.apollographql.apollo3.network.ws.GraphQLWsProtocol
 import kotlinx.coroutines.runBlocking
 import ru.saime.gql_client.screens.Home
 import ru.saime.gql_client.screens.Login
@@ -23,7 +21,10 @@ import com.google.accompanist.insets.ProvideWindowInsets
 import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.backend.refreshTokens
 import ru.saime.gql_client.cache.Cache
+import ru.saime.gql_client.utils.VibrateHelper
 import ru.saime.gql_client.widgets.AppKeyboardFocusManager
+import android.content.Context
+
 
 
 class MainActivity : ComponentActivity() {

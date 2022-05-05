@@ -1,18 +1,19 @@
 package ru.saime.gql_client.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -20,18 +21,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.VerticalAlignmentLine
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.insets.navigationBarsWithImePadding
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -47,21 +46,22 @@ import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.cache.Message
 import ru.saime.gql_client.cache.Room
 import ru.saime.gql_client.navigation.Screen
-import ru.saime.gql_client.utils.ScreenStatus
-import ru.saime.gql_client.utils.equal
-import ru.saime.gql_client.utils.set
+import ru.saime.gql_client.utils.*
 import ru.saime.gql_client.widgets.EmptyScreen
+import ru.saime.gql_client.widgets.ScreenVerticalPadding
 import ru.saime.gql_client.widgets.rememberForeverLazyListState
 import java.util.*
 
 suspend fun sendMessage(backend: Backend, room: Room): Boolean {
-	backend.sendMessage(room.roomID, room.currentInputMessageText.value, null).let { err ->
-		if (err == null) {
-			room.currentInputMessageText.value = ""
-			return true
-		} else
-			return false
-	}
+	backend.sendMessage(room.roomID, room.currentInputMessageText.value, room.markedMessage.value)
+		.let { err ->
+			if (err == null) {
+				room.currentInputMessageText.value = ""
+				room.markedMessage.value = null
+				return true
+			} else
+				return false
+		}
 
 }
 
@@ -109,18 +109,36 @@ fun RoomMessages(backend: Backend, room: Room) {
 				})
 		},
 	) {
-		SideEffect { // внутри скаффолд потому что переклдючение статуса на OK отрабатывает перед скаффолд, я так думаю...
+		if (screenStatus.equal(ScreenStatus.EMPTY)) {
+			LaunchedEffect(room.messagesOrder) {
+				// когда приходит сообщение надо будет обновить статут экрана для того чтобы отобразился компонент ShowMessages
+				snapshotFlow { room.messagesOrder.size }
+					.filter { it > 0 }
+					.collect {
+						screenStatus.set(ScreenStatus.NONE)
+					}
+			}
+		}
 
+//		LaunchedEffect(room.markedMessage) {
+//			// когда приходит сообщение надо будет обновить статут экрана для того чтобы отобразился компонент ShowMessages
+//			snapshotFlow { room.markedMessage.value }
+//				.collect {
+//					if (it == null)
+//				}
+//		}
+
+		SideEffect { // внутри скаффолд потому что переклдючение статуса на OK отрабатывает перед скаффолд, я так думаю...
 			println("echo RoomMessages.SideEffect")
-			if (room.lastMsgID == 0) {
+			if (room.lastMsgID == null) {
 				screenStatus.set(ScreenStatus.EMPTY)
-			} else if (room.messages.isEmpty()) {
+			} else if (room.messagesOrder.isEmpty()) {
 				if (screenStatus.equal(ScreenStatus.NONE))
 					MainScope().launch {
 						screenStatus.set(ScreenStatus.LOADING)
 						backend.orderRoomMessages(
 							roomID = room.roomID,
-							startMsg = room.lastMsgID,
+							startMsg = room.lastMsgID!!,
 							created = MsgCreated.BEFORE,
 						) { err ->
 							screenStatus.set(
@@ -134,24 +152,23 @@ fun RoomMessages(backend: Backend, room: Room) {
 			} else
 				screenStatus.set(ScreenStatus.OK)
 		}
-
-		when (screenStatus.value) {
-			ScreenStatus.LOADING -> Loading(Modifier.fillMaxSize())
-			ScreenStatus.ERROR -> ErrorComponent(errMsg, Modifier.fillMaxSize())
-			ScreenStatus.OK -> ShowMessages(backend, room)
-			ScreenStatus.EMPTY -> EmptyScreen(true)
-			else -> {
-				EmptyScreen(true)
+		Column {
+			Box(modifier = Modifier.weight(1f)) {
+				when (screenStatus.value) {
+					ScreenStatus.LOADING -> Loading(Modifier.fillMaxSize())
+					ScreenStatus.ERROR -> ErrorComponent(errMsg, Modifier.fillMaxSize())
+					ScreenStatus.OK -> ShowMessages(backend, room)
+					ScreenStatus.EMPTY -> EmptyScreen(true)
+					else -> {
+						EmptyScreen(true)
+					}
+				}
 			}
-		}
-
-		// message input
-		if (room.view == RoomType.TALK)
-			Box(
-				modifier = Modifier
-					.fillMaxSize(),
-				contentAlignment = Alignment.BottomCenter,
-			) {
+			// message input
+			if (room.view == RoomType.TALK) {
+				MarkedMessage(
+					msgID = room.markedMessage.value,
+				)
 				Row(
 					modifier = Modifier
 						.fillMaxWidth()
@@ -173,35 +190,60 @@ fun RoomMessages(backend: Backend, room: Room) {
 				}
 
 			}
+		}
+
 	}
 }
 
 fun displayingEmployeeName(room: Room, indexOfPairInOrder: Int): Boolean {
-	return indexOfPairInOrder + 1 == room.orderPaired.size || room.orderPaired[indexOfPairInOrder].employeeID != room.orderPaired[indexOfPairInOrder + 1].employeeID
+	return indexOfPairInOrder + 1 == room.messagesOrder.size || room.messagesOrder[indexOfPairInOrder].employeeID != room.messagesOrder[indexOfPairInOrder + 1].employeeID
 }
 
 fun displayingDataTag(room: Room, indexOfPairInOrder: Int): Boolean {
-	if (indexOfPairInOrder + 1 == room.orderPaired.size) return true
+	if (indexOfPairInOrder + 1 == room.messagesOrder.size) return true
 
-	c1.setTime(Date(room.messages[room.orderPaired[indexOfPairInOrder].messageID]!!.createdAt))
-	c2.setTime(Date(room.messages[room.orderPaired[indexOfPairInOrder + 1].messageID]!!.createdAt))
+	c1.setTime(Date(Cache.Data.messages[room.messagesOrder[indexOfPairInOrder].messageID]!!.createdAt))
+	c2.setTime(Date(Cache.Data.messages[room.messagesOrder[indexOfPairInOrder + 1].messageID]!!.createdAt))
 
 	return c1.get(Calendar.DAY_OF_YEAR) != c2.get(Calendar.DAY_OF_YEAR)
 			|| c1.get(Calendar.YEAR) != c2.get(Calendar.YEAR)
 }
 
 @Composable
+fun MarkedMessage(msgID: Int?) {
+	if (msgID != null) {
+		Cache.Data.messages[msgID]?.let { msg ->
+			ReplayedMessage(
+				modifier = Modifier
+					.fillMaxWidth()
+					.background(DividerDarkCC)
+					.padding(horizontal = 40.dp, vertical = 6.dp),
+				msg = msg
+			)
+			Box(
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(2.dp)
+					.background(BackgroundCC)
+			)
+		}
+	}
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
 fun ShowMessages(
 	backend: Backend,
 	room: Room,
+	modifier: Modifier = Modifier
 ) {
 	println("загружается ShowMessages")
 
 	val lazyListState = rememberForeverLazyListState(Screen.RoomMessages(room.roomID).routeWithArgs)
+
 	LazyColumn(
-		modifier = Modifier
-			.fillMaxSize()
-			.padding(start = 8.dp, end = 8.dp, bottom = 80.dp),
+		modifier = modifier
+			.padding(horizontal = 8.dp),
 		state = lazyListState,
 		reverseLayout = true,
 		verticalArrangement = Arrangement.spacedBy(7.dp)
@@ -210,37 +252,90 @@ fun ShowMessages(
 		itemsIndexed(
 //				items = messages.values.sortedByDescending { it.msgID },
 //				items = room.messages.values.toList(),
-			items = room.orderPaired,
+			items = room.messagesOrder,
 			key = { _, orderPair -> orderPair.messageID }
 		) { key, orderPair ->
 //				println("подгружается сообщение $orderPair, key = $key")
-			room.orderPaired.indexOf(orderPair).let { orderPairIndex ->
+			room.messagesOrder.indexOf(orderPair).let { orderPairIndex ->
 				displayingDataTag(room, orderPairIndex).let { displayingData ->
+					Cache.Data.messages[orderPair.messageID]?.let { msg ->
+						if (key == 0)
+							Box(Modifier.height(5.dp))
+						Row(
+							verticalAlignment = Alignment.Bottom,
+							horizontalArrangement = Arrangement.Start
+						) {
+							if (room.markedMessage.value != null && msg.msgID == room.markedMessage.value) {
+								Card(
+									modifier = Modifier
+										.padding(3.dp)
+										.size(30.dp),
+									shape = CircleShape,
+									backgroundColor = MainBrightCC
+								) {
+									Icon(
+										Icons.Filled.Check,
+										null,
+										tint = MainTextCC
+									)
+								}
+//									Image(
+//										painter = painterResource(R.drawable.sample_avatar),
+//										contentDescription = "avatar",
+//										contentScale = ContentScale.Crop,            // crop the image if it's not a square
+//										modifier = Modifier
+//											.size(64.dp)
+//											.clip(CircleShape)                       // clip to the circle shape
+//											.border(2.dp, Color.Gray, CircleShape)   // add a border (optional)
+//									)
 
-					Box(
-						Modifier.fillMaxWidth(),
-						if (room.messages[orderPair.messageID]!!.empID != Cache.Me.ID) Alignment.CenterStart else Alignment.CenterEnd
-					) {
-						displayingEmployeeName(room, orderPairIndex).let { displayingName ->
-							MessageBody(
-								msg = room.messages[orderPair.messageID]!!,
-								lazyListState = lazyListState,
-								displayAuthor = room.messages[orderPair.messageID]!!.empID != Cache.Me.ID && (displayingData || displayingName),
-								addTopPadding = displayingName && !displayingData
-							)
+							}
+
+							Box(
+								Modifier
+									.weight(1f),
+								if (msg.empID != Cache.Me.ID) Alignment.CenterStart else Alignment.CenterEnd
+							) {
+								displayingEmployeeName(
+									room,
+									orderPairIndex
+								).let { displayingName ->
+
+
+									MessageBody(
+										msg = msg,
+										lazyListState = lazyListState,
+										modifier = Modifier.combinedClickable(
+											onClick = {
+												if (room.markedMessage.value == orderPair.messageID)
+													room.markedMessage.value = null
+											},
+											onLongClick = {
+												if (room.markedMessage.value != orderPair.messageID) {
+													room.markedMessage.value = orderPair.messageID
+													backend.vibrateHelper.vibrate(50)
+												}
+											},
+										),
+										backgroundColor = if (msg.msgID != room.markedMessage.value) MessageBackgroundCC else MarkedMessageBackgroundCC,
+										displayAuthor = msg.empID != Cache.Me.ID && room.view != RoomType.BLOG && (displayingData || displayingName),
+										addTopPadding = displayingName && !displayingData
+									)
+								}
+							}
+
 						}
-
+						if (displayingData)
+							DataTag(msg.createdAt) // здесь потому что LazyColumn.reverseLayout = true
 					}
-					if (displayingData)
-						DataTag(room.messages[orderPair.messageID]!!.createdAt) // здесь потому что LazyColumn.reverseLayout = true
 				}
 			}
 		}
 
 	}
+
 	LaunchedEffect(lazyListState) {
 		// фокусироваться на последнем на новом сообщении если прошлое было видно на экране
-
 		snapshotFlow { lazyListState.layoutInfo.totalItemsCount }
 			.map {
 				lazyListState.firstVisibleItemIndex == 1
@@ -255,8 +350,8 @@ fun ShowMessages(
 		snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo }
 			.map { items ->
 				when {
-					items.last().key == room.orderPaired.last().messageID -> 1
-					items.first().key == room.orderPaired.first().messageID -> 2
+					items.last().key == room.messagesOrder.last().messageID -> 1
+					items.first().key == room.messagesOrder.first().messageID -> 2
 					else -> {
 						0
 					}
@@ -267,26 +362,26 @@ fun ShowMessages(
 			.collect {
 				when (it) {
 					1 -> {
-						if (room.messages[room.orderPaired.last().messageID]!!.prev != null)
+						if (Cache.Data.messages[room.messagesOrder.last().messageID]!!.prev != null)
 							backend.orderRoomMessages(
 								roomID = room.roomID,
-								startMsg = room.orderPaired.last().messageID,
+								startMsg = room.messagesOrder.last().messageID,
 								created = MsgCreated.BEFORE,
 							)
 					}
 					2 -> {
-						if (room.messages[room.orderPaired.first().messageID]!!.next != null)
+						if (Cache.Data.messages[room.messagesOrder.first().messageID]!!.next != null)
 							backend.orderRoomMessages(
 								roomID = room.roomID,
-								startMsg = room.orderPaired.first().messageID,
+								startMsg = room.messagesOrder.first().messageID,
 								created = MsgCreated.AFTER,
 							)
 					}
 				}
 			}
 
-	}
 
+	}
 }
 
 @Composable
@@ -310,13 +405,14 @@ fun MessageBody(
 	msg: Message,
 	lazyListState: LazyListState,
 	modifier: Modifier = Modifier,
+	backgroundColor: Color = MessageBackgroundCC,
 	displayAuthor: Boolean = true,
 	addTopPadding: Boolean = false,
 ) {
 	Card(
 		modifier = modifier.padding(top = if (addTopPadding) 5.dp else 0.dp),
 		shape = RoundedCornerShape(18.dp),
-		backgroundColor = RoomCardBackgroundCC,
+		backgroundColor = backgroundColor,
 //		elevation = 3.dp
 	) {
 		Row(
@@ -335,37 +431,8 @@ fun MessageBody(
 						Cache.Data.employees[msg.empID]?.let { it.firstName + " " + it.lastName }
 							.toString()
 					)
-				if (msg.targetID != null)
-					Row(
-						modifier = Modifier.padding(top = 1.dp, bottom = 1.dp, start = 4.dp),
-						horizontalArrangement = Arrangement.spacedBy(6.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Box(
-							Modifier
-								.width(2.dp)
-								.height(38.dp)
-								.background(ProfileYellowCC)
-						)
-						Column(
-//							Modifier.clickable {
-//								lazyListState.scrollToItem(lazyListState.)
-//							},
-						) {
-							TextMessageAuthor(
-								Cache.Data.employees[
-										Cache.Data.rooms[msg.roomID]?.messages?.get(msg.targetID)?.empID
-								]?.let { it.firstName + " " + it.lastName }.toString()
-							)
-							TextMessageBody(
-								Cache.Data.rooms[msg.roomID]?.messages?.get(
-									msg.targetID
-								)?.body.toString(),
-								maxLines = 1,
-								overflow = TextOverflow.Ellipsis,
-							)
-						}
-					}
+				if (msg.targetID != null && Cache.Data.messages[msg.targetID] != null)
+					ReplayedMessage(Cache.Data.messages[msg.targetID]!!)
 				TextMessageBody(msg.body)
 			}
 			TextMessageData(DateFormats.messageDate(msg.createdAt))
@@ -375,16 +442,41 @@ fun MessageBody(
 }
 
 @Composable
-fun MessageInput(room: Room, modifier: Modifier = Modifier) {
-//	val text = rememberSaveable { mutableStateOf("") }
+fun ReplayedMessage(msg: Message, modifier: Modifier = Modifier) {
+	Row(
+		modifier = modifier.padding(top = 1.dp, bottom = 1.dp, start = 4.dp),
+		horizontalArrangement = Arrangement.spacedBy(6.dp),
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		Box(
+			Modifier
+				.width(2.dp)
+				.height(38.dp)
+				.background(MessageReplyLineCC)
+		)
+		Column {
+			TextMessageAuthor(
+				Cache.Data.employees[msg.empID]?.let {
+					it.firstName + " " + it.lastName
+				}.toString()
+			)
+			TextMessageBody(
+				msg.body,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+			)
+		}
+	}
+}
 
+@Composable
+fun MessageInput(room: Room, modifier: Modifier = Modifier) {
 	TextField(
 		value = room.currentInputMessageText.value,
 		onValueChange = { room.currentInputMessageText.value = it },
 		modifier = modifier
 			.width(250.dp)
 			.padding(bottom = 10.dp, top = 5.dp, start = 5.dp, end = 5.dp)
-//			.background(Color.Green)
 			.navigationBarsWithImePadding(),
 		textStyle = TextStyle(
 			fontSize = 18.sp,
@@ -399,12 +491,7 @@ fun MessageInput(room: Room, modifier: Modifier = Modifier) {
 			unfocusedIndicatorColor = Color.Transparent,
 			errorIndicatorColor = Color.Red,
 		),
-		keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-		keyboardActions = KeyboardActions(
-			onGo = { /*TODO*/ }
-		),
-
-		)
+	)
 
 }
 

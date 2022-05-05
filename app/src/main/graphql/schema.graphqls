@@ -199,7 +199,7 @@ type Message {
 
   prev: ID
 
-  employee: Employee!
+  employee: Employee
 
   targetMsg: Message
 
@@ -245,7 +245,7 @@ type NewMessage {
 
   targetMsgID: ID
 
-  empID: ID!
+  employeeID: ID
 
   body: String!
 
@@ -297,9 +297,9 @@ type Room {
 
   prevRoomID: ID
 
-  lastMessageRead: ID!
+  lastMessageRead: ID
 
-  lastMessageID: ID!
+  lastMessageID: ID
 
   members: Members!
 }

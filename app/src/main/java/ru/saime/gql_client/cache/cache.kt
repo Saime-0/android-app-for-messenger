@@ -25,32 +25,28 @@ object Cache {
 	}
 
 	object Data {
-		val rooms: MutableMap<Int, Room> = hashMapOf()
-		val employees: MutableMap<Int, Employee> = hashMapOf()
-		val tags: MutableMap<Int, Tag> = hashMapOf()
+		val rooms = mutableMapOf<Int, Room>()
+		val employees = mutableMapOf<Int, Employee>()
+		val tags = mutableMapOf<Int, Tag>()
+		val messages = mutableMapOf<Int, Message>()
 	}
 }
 
 data class OrderPair(
 	val messageID: Int,
-	val employeeID: Int
+	val employeeID: Int?
 )
 
 data class Room(
 	val roomID: Int,
 	val name: String,
 	val view: RoomType,
-	var lastMsgID: Int,
-	val lastMsgRead: Int,
+	var lastMsgID: Int?,
+	val lastMsgRead: Int?,
 ) {
-//	val order = mutableStateListOf<Int>()
-	val orderPaired = mutableStateListOf<OrderPair>()
-	val messages = mutableMapOf<Int, Message>()
+	val messagesOrder = mutableStateListOf<OrderPair>()
 	val currentInputMessageText = mutableStateOf("")
-
-//	val messages = mutableStateMapOf<Int, Message>()
-//	val messages: SortedMap<Int, Message> = sortedMapOf(comparator = compareByDescending { it })
-//	val messages: MutableState<SortedMap<Int, Message>> = mutableStateOf(sortedMapOf<Int, Message>(comparator = compareByDescending { it }))
+	var markedMessage: MutableState<Int?> = mutableStateOf(null)
 }
 
 data class Employee(
@@ -63,7 +59,7 @@ data class Employee(
 data class Message(
 	val msgID: Int,
 	val roomID: Int,
-	val empID: Int,
+	val empID: Int?,
 	val targetID: Int?,
 	val body: String,
 	val createdAt: Long,

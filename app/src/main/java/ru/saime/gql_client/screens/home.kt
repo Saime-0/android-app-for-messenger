@@ -32,8 +32,7 @@ fun Home(backend: Backend) {
 	) {
 		NavHost(
 			navController = navController,
-			startDestination = Screen.Profile().routeRef,
-		modifier = Modifier.padding(14.dp)
+			startDestination = Screen.Profile().routeRef
 		) {
 //			composable(Screen.Guide.route) { Guide() }
 			composable(Screen.Rooms.routeRef) { Rooms(backend) }

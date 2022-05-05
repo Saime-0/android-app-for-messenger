@@ -1,27 +1,22 @@
 package ru.saime.gql_client.backend
 
+import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
 import com.apollographql.apollo3.ApolloClient
-import com.apollographql.apollo3.api.ApolloResponse
-import com.apollographql.apollo3.api.Optional
 import com.apollographql.apollo3.network.ws.GraphQLWsProtocol
 import com.apollographql.apollo3.network.ws.SubscriptionWsProtocol
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
-import kotlinx.coroutines.launch
 import pkg.*
-import pkg.fragment.MessagesForRoom
-import pkg.type.EventSubjectAction
-import pkg.type.EventType
-import pkg.type.MsgCreated
 import ru.saime.gql_client.*
 import ru.saime.gql_client.cache.*
+import ru.saime.gql_client.utils.VibrateHelper
 import ru.saime.gql_client.utils.getRandomString
+import ru.saime.gql_client.utils.triggerRebirth
 
 
 class Backend(
@@ -29,6 +24,8 @@ class Backend(
 	val mainNavController: NavHostController,
 	val pref: SharedPreferences
 ) {
+
+	val vibrateHelper = VibrateHelper(activity.baseContext)
 	object States {
 		var SendingMessage: Boolean = false
 		var WebsocketConnectionEstablished: Boolean = false
@@ -82,7 +79,7 @@ class Backend(
 						Cache.Data.rooms[msg.roomID]?.let { room ->
 							room.lastMsgID =
 								msg.msgID // установить ид последнего сообщения в комнате
-							room.messages[msg.prev]?.let { prevMsg ->
+							Cache.Data.messages[msg.prev]?.let { prevMsg ->
 								prevMsg.next =
 									msg.msgID // для предыдущего сообщения меняю msg.next на id нового сообения
 							}
@@ -119,7 +116,7 @@ class Backend(
 		pref.edit(true) {
 			this.remove(PrefRefreshTokenKey)
 		}
-		activity.finish()
+		triggerRebirth(activity.applicationContext)
 	}
 
 }
