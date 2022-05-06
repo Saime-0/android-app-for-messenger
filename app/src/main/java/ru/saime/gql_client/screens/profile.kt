@@ -93,7 +93,7 @@ fun ShowProfileV2(
 					},
 					contentColor = MainTextCC,
 					backgroundColor = DefaultTripleBarBackgroundCC,
-					title = { Text("Сотрудник № $empID")})
+					title = { Text("Сотрудник № ${emp.empID}")})
 			},
 			backgroundColor = BackgroundCC
 		) {

@@ -264,8 +264,6 @@ type PersonalData {
   email: String!
 
   phoneNumber: String!
-
-  token: String!
 }
 
 type Query {
@@ -289,13 +287,13 @@ union RefreshTokensResult = AdvancedError|TokenPair
 union RegisterResult = AdvancedError|Successful
 
 type Room {
+  pos: Int!
+
   roomID: ID!
 
   name: String!
 
   view: RoomType!
-
-  prevRoomID: ID
 
   lastMessageRead: ID
 

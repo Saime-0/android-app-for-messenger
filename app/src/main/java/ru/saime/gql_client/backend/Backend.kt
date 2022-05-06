@@ -7,10 +7,8 @@ import androidx.navigation.NavHostController
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.network.ws.GraphQLWsProtocol
 import com.apollographql.apollo3.network.ws.SubscriptionWsProtocol
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.retryWhen
-import kotlinx.coroutines.launch
 import pkg.*
 import ru.saime.gql_client.*
 import ru.saime.gql_client.cache.*
@@ -33,6 +31,9 @@ class Backend(
 	var accessToken: String = ""
 	var refreshToken: String = ""
 	val sessionKey: String = getRandomString(MustLengthSessionKey)
+
+	private var subscriptionJob: Job? = null
+
 	val apolloClient: ApolloClient = ApolloClient.Builder()
 		.serverUrl("http://chating.ddns.net:8080/query")
 		.webSocketServerUrl("http://chating.ddns.net:8080/query")
@@ -53,10 +54,14 @@ class Backend(
 
 	init {
 		refreshToken = pref.getString(PrefRefreshTokenKey, "") ?: ""
-		MainScope().launch { subscribe() }
 	}
 
-	suspend fun subscribe() {
+	fun pleaseSubscribe() {
+		if (subscriptionJob == null)
+			subscriptionJob = MainScope().launch { subscribe() }
+	}
+
+	private suspend fun subscribe() {
 		println("оформляю подписку...")
 		States.WebSocketConnectionEstablished = true // Чтобы знать что подписка активна
 		apolloClient
@@ -113,9 +118,27 @@ class Backend(
 
 	fun logout() {
 		pref.edit(true) {
-			this.remove(PrefRefreshTokenKey)
+			this.remove(PrefRefreshTokenKey) // удалить refresh token
 		}
-		triggerRebirth(activity.applicationContext)
+		// отменить подписку
+		subscriptionJob?.cancel()
+		subscriptionJob = null
+
+		Cache.Me.run {
+			ID = 0
+			email = ""
+			phone = ""
+		}
+		Cache.Data.run {
+			rooms.clear()
+			employees.clear()
+			tags.clear()
+			messages.clear()
+		}
+		Cache.LoadedData.clear()
+
+
+		triggerRebirth(activity.applicationContext) // перезапуск приложения
 	}
 
 }

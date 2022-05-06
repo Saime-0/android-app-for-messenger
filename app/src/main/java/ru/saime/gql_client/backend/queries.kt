@@ -73,35 +73,41 @@ suspend fun Backend.orderEmployeeProfile(empID: Int): String? {
 }
 
 
-suspend fun Backend.orderMeRooms(): String? {
-	if (Cache.LoadedData.containsKey(LoadedDataType.RoomList)) {
-		println("RoomList уже был запрошен")
-		return null
-	}
+suspend fun Backend.orderMeRooms(
+	offset: Int,
+	limit: Int = 20,
+): String? {
+//	if (Cache.LoadedData.containsKey(LoadedDataType.RoomList)) {
+//		println("RoomList уже был запрошен")
+//		return null
+//	}
 	println("попытка запросить RoomList")
 
-	val response: ApolloResponse<MeRoomsListQuery.Data>
-	try {
-		response = apolloClient.query(
+	apolloClient
+		.query(
 			MeRoomsListQuery(
-				Optional.presentIfNotNull(0),
-				Optional.presentIfNotNull(20)
+				offset = Optional.presentIfNotNull(offset),
+				limit = Optional.presentIfNotNull(limit)
 			)
-		).addHttpHeader(AuthorizationHeader, accessToken).execute()
-		if (response.data != null)
-			return if (response.data!!.me.onMe != null) {
-				Cache.fillRooms(response.data!!.me.onMe!!.rooms.roomsWithoutMembers)
-				Cache.LoadedData[LoadedDataType.RoomList] = Unit
-				null
-			} else
-				response.data!!.me.onAdvancedError!!.toString()
-		else if (response.errors != null)
-			return response.errors!!.toString()
-	} catch (ex: Exception) {
-		println(ex)
-		return ex.toString()
-	}
-	return null
+		)
+		.addHttpHeader(AuthorizationHeader, accessToken)
+		.execute().let { response ->
+			try {
+				if (response.data != null)
+					return if (response.data!!.me.onMe != null) {
+						Cache.fillRooms(this, response.data!!.me.onMe!!.rooms.roomsWithoutMembers)
+						Cache.LoadedData[LoadedDataType.RoomList] = Unit
+						null
+					} else
+						response.data!!.me.onAdvancedError!!.toString()
+				else if (response.errors != null)
+					return response.errors!!.toString()
+			} catch (ex: Exception) {
+				println(ex)
+				return ex.toString()
+			}
+			return null
+		}
 }
 
 suspend fun Backend.orderRoomMessages(

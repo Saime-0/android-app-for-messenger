@@ -53,6 +53,7 @@ suspend fun Backend.loginByCredentials(
 				}
 				println("успешно залогинился, токены обновлены, $accessToken")
 				orderMe()
+				pleaseSubscribe()
 				null
 			} catch (ex: Exception) {
 				println(ex)
@@ -72,6 +73,7 @@ suspend fun Backend.refreshTokens(): String? {
 					putString(PrefRefreshTokenKey, refreshToken)
 				}
 				orderMe()
+				pleaseSubscribe()
 				null
 			} catch (ex: Exception) {
 				println(ex)

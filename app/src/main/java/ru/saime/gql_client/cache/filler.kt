@@ -1,22 +1,20 @@
 package ru.saime.gql_client.cache
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import pkg.ProfileQuery
 import pkg.SubscribeSubscription
 import pkg.fragment.*
+import pkg.type.EventSubjectAction
+import pkg.type.EventType
 import ru.saime.gql_client.backend.Backend
+import ru.saime.gql_client.backend.editSubscribeList
 import ru.saime.gql_client.backend.orderEmployeeProfile
 import ru.saime.gql_client.backend.orderRoomMessage
-import ru.saime.gql_client.cache.Cache.Me.ID
-import ru.saime.gql_client.cache.Cache.Me.email
-import ru.saime.gql_client.cache.Cache.Me.phone
+
 
 fun Cache.fillMe(data: ProfileQuery.OnMe) {
 	Cache.fillEmployee(data.employee.fullEmployee)
 
-	Cache.Me.let {
+	Cache.Me.run {
 		ID = data.employee.fullEmployee.empID
 		email = data.personal.email
 		phone = data.personal.phoneNumber
@@ -36,18 +34,33 @@ fun Cache.fillEmployee(data: FullEmployee) {
 	}
 }
 
-fun Cache.fillRooms(data: RoomsWithoutMembers) { // todo
+suspend fun Cache.fillRooms(backend: Backend, data: RoomsWithoutMembers) { // todo
+	println("начинаю заполнять комнаты")
 	for (room in data.rooms) {
 		Cache.Data.rooms[room.roomWithoutMembers.roomID] = Room(
+			pos = room.roomWithoutMembers.pos,
 			roomID = room.roomWithoutMembers.roomID,
 			name = room.roomWithoutMembers.name,
 			view = room.roomWithoutMembers.view,
 			lastMsgID = room.roomWithoutMembers.lastMessageID,
 			lastMsgRead = room.roomWithoutMembers.lastMessageRead,
 		)
-	}
 
+	}
+	backend.editSubscribeList(
+		action = EventSubjectAction.ADD,
+		listenEvents = listOf(EventType.all),
+		targetRooms = data.rooms.map { it.roomWithoutMembers.roomID }
+	).let { err ->
+		println(
+			if (err.isNullOrEmpty()) "editSubscribeList successful += ${data.rooms.map { it.roomWithoutMembers.roomID }}"
+			else "editSubscribeList failed with - $err"
+		)
+	}
+//	Cache.roomsResorting()
+	println("комнаты заполнены")
 }
+
 
 fun Cache.fillTag(data: FullTag) {
 	Cache.Data.tags[data.tagID] = Tag(
@@ -112,11 +125,17 @@ suspend fun Cache.fillOnNewMessage(backend: Backend, msg: SubscribeSubscription.
 	)
 
 	// сначала подгружаю недостающие данные, тк клиент после пополения списка не перерисует экран если бы я подгружал автора позже
-		Cache.orderTargetMessageIfNotExists(backend, msg.targetMsgID)
-		Cache.orderEmployeeMessageIfNotExists(backend, msg.employeeID)
+	Cache.orderTargetMessageIfNotExists(backend, msg.targetMsgID)
+	Cache.orderEmployeeMessageIfNotExists(backend, msg.employeeID)
 
 
-	if (!Cache.Data.rooms[msg.roomID]!!.messagesOrder.contains(OrderPair(msg.msgID, msg.employeeID))) {
+	if (!Cache.Data.rooms[msg.roomID]!!.messagesOrder.contains(
+			OrderPair(
+				msg.msgID,
+				msg.employeeID
+			)
+		)
+	) {
 		Cache.Data.rooms[msg.roomID]!!.messagesOrder.let { list ->
 			list.add(OrderPair(msg.msgID, msg.employeeID))
 			list.sortByDescending { it.messageID }

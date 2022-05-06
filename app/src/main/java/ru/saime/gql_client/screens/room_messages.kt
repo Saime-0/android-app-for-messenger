@@ -3,9 +3,7 @@ package ru.saime.gql_client.screens
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -21,8 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.VerticalAlignmentLine
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
@@ -45,8 +43,6 @@ import ru.saime.gql_client.cache.Room
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.utils.*
 import ru.saime.gql_client.widgets.EmptyScreen
-import ru.saime.gql_client.widgets.ScreenVerticalPadding
-import ru.saime.gql_client.widgets.rememberForeverLazyListState
 import java.util.*
 
 suspend fun sendMessage(
@@ -79,7 +75,7 @@ val c2: Calendar = Calendar.getInstance()
 
 @Composable
 fun RoomMessages(backend: Backend, room: Room) {
-	val screenStatus = rememberSaveable {
+	val screenStatus = remember {
 		mutableStateOf(ScreenStatus.NONE)
 	}
 	var errMsg: String = remember { "" }
@@ -217,38 +213,38 @@ fun MarkedMessage(msgID: Int?) {
 	if (msgID != null) {
 		Cache.Data.messages[msgID]?.let { msg ->
 			Cache.Data.rooms[msg.roomID]?.let { room ->
-			Row(
-				modifier = Modifier
-					.background(DividerDarkCC)
-					.padding(horizontal = 40.dp, vertical = 6.dp),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				ReplayedMessage(
+				Row(
 					modifier = Modifier
-						.weight(1f)
-						.clickable {
+						.background(DividerDarkCC)
+						.padding(horizontal = 40.dp, vertical = 6.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					ReplayedMessage(
+						modifier = Modifier
+							.weight(1f)
+							.clickable {
 								MainScope().launch {
 									room.lazyListState.scrollToItem(room.markedMessage.indexInColumn)
 								}
-						},
-					msg = msg
-				)
-				IconButton(onClick = { room.markedMessage.clear() }) {
-					Icon(
-						Icons.Filled.Close,
-						null,
-						tint = MainTextCC
+							},
+						msg = msg
 					)
+					IconButton(onClick = { room.markedMessage.clear() }) {
+						Icon(
+							Icons.Filled.Close,
+							null,
+							tint = MainTextCC
+						)
+					}
 				}
+				Box( // нижняя граница
+					modifier = Modifier
+						.fillMaxWidth()
+						.height(2.dp)
+						.background(BackgroundCC)
+				)
 			}
-			Box( // нижняя граница
-				modifier = Modifier
-					.fillMaxWidth()
-					.height(2.dp)
-					.background(BackgroundCC)
-			)
 		}
-	}
 	}
 }
 
@@ -367,7 +363,7 @@ fun ShowMessages(
 					}
 				}
 			}
-			.distinctUntilChanged()
+//			.distinctUntilChanged()
 			.filter { it > 0 }
 			.collect {
 				when (it) {
@@ -419,11 +415,11 @@ fun MessageBody(
 	displayAuthor: Boolean = true,
 	addTopPadding: Boolean = false,
 ) {
+
 	Card(
 		modifier = modifier.padding(top = if (addTopPadding) 5.dp else 0.dp),
 		shape = RoundedCornerShape(18.dp),
 		backgroundColor = backgroundColor,
-//		elevation = 3.dp
 	) {
 		Row(
 			modifier = Modifier.padding(vertical = 4.dp, horizontal = 11.dp),
@@ -451,7 +447,6 @@ fun MessageBody(
 				TextMessageBody(msg.body)
 			}
 			TextMessageData(DateFormats.messageDate(msg.createdAt))
-//			TextMessageData("(${msg.msgID})")
 		}
 	}
 }
@@ -544,16 +539,20 @@ fun TextMessageData(
 @Composable
 fun TextMessageBody(
 	text: String,
+	modifier: Modifier = Modifier,
 	color: Color = MessageTextCC,
 	overflow: TextOverflow = TextOverflow.Clip,
 	maxLines: Int = Int.MAX_VALUE,
+	onTextLayout: (TextLayoutResult) -> Unit = {},
 //	fontSize: TextUnit = 16.sp
 ) {
 	Text(
 		text = text,
+		modifier = modifier,
 		color = color,
 		overflow = overflow,
 		maxLines = maxLines,
+		onTextLayout = onTextLayout,
 //		fontFamily = FontFamily.SansSerif,
 //		fontSize = fontSize
 	)

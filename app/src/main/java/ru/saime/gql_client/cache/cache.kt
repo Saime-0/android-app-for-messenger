@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import pkg.type.RoomType
+import java.lang.Exception
 import java.util.*
 
 enum class LoadedDataType {
@@ -26,10 +27,11 @@ object Cache {
 	}
 
 	object Data {
-		val rooms = mutableMapOf<Int, Room>()
+		val rooms = mutableStateMapOf<Int, Room>()
 		val employees = mutableMapOf<Int, Employee>()
 		val tags = mutableMapOf<Int, Tag>()
 		val messages = mutableMapOf<Int, Message>()
+
 	}
 }
 
@@ -54,6 +56,7 @@ data class MarkedPair(
 }
 
 data class Room(
+	var pos: Int,
 	val roomID: Int,
 	val name: String,
 	val view: RoomType,
