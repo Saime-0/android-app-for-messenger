@@ -152,13 +152,17 @@ fun RoomMessages(backend: Backend, room: Room) {
 												if (pair.messageID <= room.lastMsgRead.value!!) {
 //													println("go to - ${pair.messageID}")
 													MainScope().launch {
-//													delay(100L)
+														delay(20L)
 														room.lazyListState.scrollToItem(i)
 													}
 													return@find
 												}
 
 											}
+										}
+									else if (room.lastMsgID != null && room.lazyListState.layoutInfo.totalItemsCount > 1)
+										MainScope().launch {
+											room.lazyListState.scrollToItem(room.lazyListState.layoutInfo.totalItemsCount-1)
 										}
 
 									ScreenStatus.OK
@@ -296,8 +300,8 @@ fun MarkedMessage(msgID: Int?) {
 fun displayingUnreadTag(room: Room, unreadMsgID: Int?, indexOfLazyMessage: Int): Boolean {
 	return indexOfLazyMessage != 0
 			&& indexOfLazyMessage + 1 != room.messagesLazyOrder.size
-			&& (unreadMsgID == null
-			|| room.messagesLazyOrder[indexOfLazyMessage + 1].messageID <= unreadMsgID && room.messagesLazyOrder[indexOfLazyMessage].messageID > unreadMsgID)
+			&& unreadMsgID != null
+			&& (room.messagesLazyOrder[indexOfLazyMessage + 1].messageID <= unreadMsgID && room.messagesLazyOrder[indexOfLazyMessage].messageID > unreadMsgID)
 
 }
 
@@ -309,18 +313,17 @@ fun ShowMessages(
 	modifier: Modifier = Modifier
 ) {
 	val coroutineScope = rememberCoroutineScope()
-	var unreadTad = remember {
+	val unreadTad = remember {
 		room.lastMsgRead.value
 	}
 
 	println("загружается ShowMessages")
 //	val lazyListState = rememberForeverLazyListState(Screen.RoomMessages(room.roomID).routeWithArgs)
 	LazyColumn(
-		modifier = modifier
-			.padding(horizontal = 8.dp),
+		modifier = modifier,
 		state = room.lazyListState,
 		reverseLayout = true,
-		verticalArrangement = Arrangement.spacedBy(7.dp)
+//		verticalArrangement = Arrangement.spacedBy(7.dp)
 	) {
 		itemsIndexed(
 			items = room.messagesLazyOrder,
@@ -329,12 +332,17 @@ fun ShowMessages(
 
 			Cache.Data.messages[lazyMessage.messageID]?.let { msg ->
 
-				// top padding
-				if (indexInColumn == 0) Box(Modifier.height(5.dp))
+
+				// bottom padding
+				Spacer(Modifier.height(3.dp))
 				Row(
+					modifier = Modifier
+						.padding(horizontal = 8.dp)
+					,
 					verticalAlignment = Alignment.Bottom,
 					horizontalArrangement = Arrangement.Start
 				) {
+
 //					if (room.markedMessage.messageID.value != null && msg.msgID == room.markedMessage.messageID.value)
 //						Card(
 //							modifier = Modifier
@@ -347,7 +355,8 @@ fun ShowMessages(
 //						}
 
 					Box(
-						Modifier.weight(1f),
+						Modifier
+							.weight(1f),
 						lazyMessage.alignment
 					) {
 
@@ -374,12 +383,15 @@ fun ShowMessages(
 										lazyMessage.backgroundColor
 									else MarkedMessageBackgroundCC),
 							displayAuthor = lazyMessage.displayingName,
-							addTopPadding = lazyMessage.addTopPadding
+//							addTopPadding = lazyMessage.addTopPadding
 						)
 
 					}
 
 				}
+				// top padding
+				Spacer(Modifier.height(if (lazyMessage.addTopPadding) 10.dp else 3.dp))
+
 				// здесь потому что LazyColumn.reverseLayout = true
 				// different data tag
 				if (lazyMessage.displayingData) DataTag(msg.createdAt)
@@ -475,11 +487,12 @@ fun UnreadTag(modifier: Modifier = Modifier) {
 	Box(
 		modifier = modifier
 			.fillMaxWidth()
-//			.background(ProfileSectionBackgroundCC)
+			.padding(vertical = 7.dp)
+			.background(ProfileSectionBackgroundCC)
 		,
 		contentAlignment = Alignment.Center
 	) {
-		Text("Непрочитанные", Modifier.padding(4.dp), color = MainTextCC)
+		Text("Непрочитанные",Modifier.padding(2.dp), color = MainTextCC)
 	}
 }
 
@@ -506,11 +519,11 @@ fun MessageBody(
 	modifier: Modifier = Modifier,
 	backgroundColor: Color = MessageBackgroundCC,
 	displayAuthor: Boolean = true,
-	addTopPadding: Boolean = false,
+//	addTopPadding: Boolean = false,
 ) {
 
 	Card(
-		modifier = modifier.padding(top = if (addTopPadding) 5.dp else 0.dp),
+		modifier = modifier,
 		shape = RoundedCornerShape(18.dp),
 		backgroundColor = backgroundColor,
 	) {

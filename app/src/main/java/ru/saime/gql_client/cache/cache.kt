@@ -34,10 +34,6 @@ object Cache {
 	}
 }
 
-data class OrderPair(
-	val messageID: Int,
-	val employeeID: Int?
-)
 data class LazyMessage(
 	val messageID: Int,
 	val employeeID: Int?,
@@ -47,7 +43,7 @@ data class LazyMessage(
 	var displayingName: Boolean,
 	var addTopPadding: Boolean,
 
-)
+	)
 
 data class MarkedPair(
 	val messageID: MutableState<Int?>,
@@ -72,10 +68,13 @@ data class Room(
 	var lastMsgID: Int?,
 	val lastMsgRead: MutableState<Int?>,
 ) {
-//	val messagesOrder = mutableListOf<OrderPair>()
-	val messagesLazyOrder = mutableStateListOf<LazyMessage>()
+	//	val messagesOrder = mutableListOf<OrderPair>()
+//	var messagesLazyOrder by mutableStateOf(emptyList<LazyMessage>())
+//	var messagesLazyOrder by mutableStateOf(mapOf<Int, LazyMessage>())
+	var messagesLazyOrder = mutableStateListOf<LazyMessage>()
+//	val orderCopy = mutableListOf<LazyMessage>()
 
-//	States
+	//	States
 	val currentInputMessageText = mutableStateOf("")
 	val lazyListState = LazyListState()
 	var markedMessage = MarkedPair(mutableStateOf(null), 0)

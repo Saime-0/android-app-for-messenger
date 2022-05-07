@@ -4,7 +4,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import pkg.ProfileQuery
 import pkg.SubscribeSubscription
 import pkg.fragment.*
@@ -123,9 +125,11 @@ suspend fun Cache.fillRoomMessages(backend: Backend, messages: MessagesForRoom) 
 				// сначала подгружаю недостающие данные, тк клиент после пополения списка не перерисует экран если бы я подгружал автора позже
 				Cache.orderTargetMessageIfNotExists(backend, msgForRoom.targetMsg?.msgID)
 				Cache.orderEmployeeMessageIfNotExists(backend, msgForRoom.employee?.empID)
-
+				MainScope().launch {
 				if (!room.messagesLazyOrder.map { it.messageID == msgForRoom.msgID }.contains(true))
 					room.addLazyMessage(msg)
+
+				}
 			}
 		}
 	}
