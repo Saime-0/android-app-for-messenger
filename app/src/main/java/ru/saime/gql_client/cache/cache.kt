@@ -2,6 +2,8 @@ package ru.saime.gql_client.cache
 
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import pkg.type.RoomType
 import java.lang.Exception
 import java.util.*
@@ -36,6 +38,16 @@ data class OrderPair(
 	val messageID: Int,
 	val employeeID: Int?
 )
+data class LazyMessage(
+	val messageID: Int,
+	val employeeID: Int?,
+	val alignment: Alignment,
+	var displayingData: Boolean,
+	var displayingName: Boolean,
+	var backgroundColor: Color,
+	var addTopPadding: Boolean,
+
+)
 
 data class MarkedPair(
 	val messageID: MutableState<Int?>,
@@ -60,7 +72,8 @@ data class Room(
 	var lastMsgID: Int?,
 	val lastMsgRead: MutableState<Int?>,
 ) {
-	val messagesOrder = mutableStateListOf<OrderPair>()
+//	val messagesOrder = mutableStateListOf<OrderPair>()
+	val messagesLazyOrder = mutableStateListOf<LazyMessage>()
 
 //	States
 	val currentInputMessageText = mutableStateOf("")

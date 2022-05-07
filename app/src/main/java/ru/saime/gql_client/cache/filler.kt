@@ -1,15 +1,23 @@
 package ru.saime.gql_client.cache
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import pkg.ProfileQuery
 import pkg.SubscribeSubscription
 import pkg.fragment.*
 import pkg.type.EventSubjectAction
 import pkg.type.EventType
+import pkg.type.RoomType
+import ru.saime.gql_client.MarkedMessageBackgroundCC
+import ru.saime.gql_client.MessageBackgroundCC
+import ru.saime.gql_client.MessageMeBackgroundCC
 import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.backend.editSubscribeList
 import ru.saime.gql_client.backend.orderEmployeeProfile
 import ru.saime.gql_client.backend.orderRoomMessage
+import java.util.*
 
 
 fun Cache.fillMe(data: ProfileQuery.OnMe) {
@@ -70,36 +78,118 @@ fun Cache.fillTag(data: FullTag) {
 	)
 }
 
-suspend fun Cache.fillRoomMessages(backend: Backend, messages: MessagesForRoom) {
-	for (msg in messages.messages) {
-		Cache.Data.rooms[msg.room.roomID]?.let { room ->
+suspend fun Cache.fillOnNewMessage(backend: Backend, msg: SubscribeSubscription.OnNewMessage) {
+	Message(
+		roomID = msg.roomID, // todo: order if not exists... why?
+		msgID = msg.msgID,
+		empID = msg.employeeID,
+		targetID = msg.targetMsgID,
+		body = msg.body,
+		createdAt = msg.createdAt * 1000L,
+		prev = msg.prev,
+		next = null,
+	).let { msg ->
+		Cache.Data.messages[msg.msgID] = msg
 
-			Cache.Data.messages[msg.msgID] = Message(
-				roomID = msg.room.roomID, // todo: order if not exists... why?
-				msgID = msg.msgID,
-				empID = msg.employee?.empID,
-				targetID = msg.targetMsg?.msgID,
-				body = msg.body,
-				createdAt = msg.createdAt * 1000L,
-				prev = msg.prev,
-				next = msg.next,
-			)
+		// сначала подгружаю недостающие данные, тк клиент после пополения списка не перерисует экран если бы я подгружал автора позже
+		Cache.orderTargetMessageIfNotExists(backend, msg.targetID)
+		Cache.orderEmployeeMessageIfNotExists(backend, msg.empID)
 
-			// сначала подгружаю недостающие данные, тк клиент после пополения списка не перерисует экран если бы я подгружал автора позже
-			Cache.orderTargetMessageIfNotExists(backend, msg.targetMsg?.msgID)
-			Cache.orderEmployeeMessageIfNotExists(backend, msg.employee?.empID)
-
-			if (!room.messagesOrder.contains(OrderPair(msg.msgID, msg.employee?.empID))) {
-				room.messagesOrder.let { list ->
-					list.add(OrderPair(msg.msgID, msg.employee?.empID))
-					list.sortByDescending { it.messageID }
-				}
-			}
-
-
+		Cache.Data.rooms[msg.roomID]?.let { room ->
+			if (!room.messagesLazyOrder.map { it.messageID == msg.msgID }.contains(true))
+				room.addLazyMessage(msg)
 		}
 	}
+
 }
+
+suspend fun Cache.fillRoomMessages(backend: Backend, messages: MessagesForRoom) {
+	for (msgForRoom in messages.messages) {
+		Cache.Data.rooms[msgForRoom.room.roomID]?.let { room ->
+
+			Message(
+				roomID = msgForRoom.room.roomID, // todo: order if not exists... why?
+				msgID = msgForRoom.msgID,
+				empID = msgForRoom.employee?.empID,
+				targetID = msgForRoom.targetMsg?.msgID,
+				body = msgForRoom.body,
+				createdAt = msgForRoom.createdAt * 1000L,
+				prev = msgForRoom.prev,
+				next = msgForRoom.next,
+			).let { msg ->
+				Cache.Data.messages[msg.msgID] = msg
+
+				// сначала подгружаю недостающие данные, тк клиент после пополения списка не перерисует экран если бы я подгружал автора позже
+				Cache.orderTargetMessageIfNotExists(backend, msgForRoom.targetMsg?.msgID)
+				Cache.orderEmployeeMessageIfNotExists(backend, msgForRoom.employee?.empID)
+
+				if (!room.messagesLazyOrder.map { it.messageID == msgForRoom.msgID }.contains(true))
+					room.addLazyMessage(msg)
+			}
+		}
+	}
+
+}
+
+fun Room.addLazyMessage(msg: Message) {
+	println("Room.addLazyMessage")
+	// Создаю объект
+	LazyMessage(
+		messageID = msg.msgID,
+		employeeID = msg.empID,
+		alignment = if (msg.empID == null || msg.empID != Cache.Me.ID) Alignment.CenterStart else Alignment.CenterEnd,
+		displayingData = false, // nope
+		displayingName = false, // nope
+		backgroundColor = Color.White, // nope
+		addTopPadding = false, // nope
+	).let { newMsg ->
+		messagesLazyOrder.add(newMsg) //потом добавляю его в список
+		messagesLazyOrder.sortByDescending { it.messageID } // сортирую список
+		messagesLazyOrder.map { it.messageID }
+			.indexOf(newMsg.messageID)
+			.let { index -> // нахожу index объекта в отсортированном списке
+				computeLazyMessage(this, messagesLazyOrder, index)
+				// modify previous
+				if (index - 1 >= 0) computeLazyMessage(this, messagesLazyOrder, index - 1)
+			}
+	}
+}
+
+fun computeLazyMessage(room: Room, list: SnapshotStateList<LazyMessage>, index: Int) {
+	list[index].let { newMsg ->
+
+		displayingLazyDataTag(room, index).let { displayingData ->
+			newMsg.displayingData = displayingData
+			displayingLazyEmployeeName(room, index).let { displayingName ->
+				newMsg.backgroundColor =
+					if (newMsg.messageID != room.markedMessage.messageID.value)
+						if (newMsg.employeeID == null || newMsg.employeeID != Cache.Me.ID) MessageBackgroundCC else MessageMeBackgroundCC
+					else MarkedMessageBackgroundCC
+				newMsg.displayingName =
+					newMsg.employeeID != null && newMsg.employeeID != Cache.Me.ID && room.view != RoomType.BLOG && (displayingData || displayingName)
+				newMsg.addTopPadding = displayingName && !displayingData
+			}
+		}
+
+	}
+}
+
+fun displayingLazyEmployeeName(room: Room, indexOfLazyMessage: Int): Boolean {
+	return indexOfLazyMessage + 1 == room.messagesLazyOrder.size || room.messagesLazyOrder[indexOfLazyMessage].employeeID != room.messagesLazyOrder[indexOfLazyMessage + 1].employeeID
+}
+
+val c1: Calendar = Calendar.getInstance()
+val c2: Calendar = Calendar.getInstance()
+fun displayingLazyDataTag(room: Room, indexOfLazyMessage: Int): Boolean {
+	if (indexOfLazyMessage + 1 == room.messagesLazyOrder.size) return true
+
+	c1.setTime(Date(Cache.Data.messages[room.messagesLazyOrder[indexOfLazyMessage].messageID]!!.createdAt))
+	c2.setTime(Date(Cache.Data.messages[room.messagesLazyOrder[indexOfLazyMessage + 1].messageID]!!.createdAt))
+
+	return c1.get(Calendar.DAY_OF_YEAR) != c2.get(Calendar.DAY_OF_YEAR)
+			|| c1.get(Calendar.YEAR) != c2.get(Calendar.YEAR)
+}
+
 
 suspend fun Cache.orderTargetMessageIfNotExists(backend: Backend, targetMsgID: Int?) {
 	if (targetMsgID != null && Cache.Data.messages[targetMsgID] == null) {
@@ -113,34 +203,3 @@ suspend fun Cache.orderEmployeeMessageIfNotExists(backend: Backend, empID: Int?)
 	}
 }
 
-suspend fun Cache.fillOnNewMessage(backend: Backend, msg: SubscribeSubscription.OnNewMessage) {
-	Cache.Data.messages[msg.msgID] = Message(
-		roomID = msg.roomID, // todo: order if not exists... why?
-		msgID = msg.msgID,
-		empID = msg.employeeID,
-		targetID = msg.targetMsgID,
-		body = msg.body,
-		createdAt = msg.createdAt * 1000L,
-		prev = msg.prev,
-		next = null,
-	)
-
-	// сначала подгружаю недостающие данные, тк клиент после пополения списка не перерисует экран если бы я подгружал автора позже
-	Cache.orderTargetMessageIfNotExists(backend, msg.targetMsgID)
-	Cache.orderEmployeeMessageIfNotExists(backend, msg.employeeID)
-
-
-	if (!Cache.Data.rooms[msg.roomID]!!.messagesOrder.contains(
-			OrderPair(
-				msg.msgID,
-				msg.employeeID
-			)
-		)
-	) {
-		Cache.Data.rooms[msg.roomID]!!.messagesOrder.let { list ->
-			list.add(OrderPair(msg.msgID, msg.employeeID))
-			list.sortByDescending { it.messageID }
-		}
-	}
-
-}
