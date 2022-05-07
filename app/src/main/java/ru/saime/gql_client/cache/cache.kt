@@ -42,9 +42,9 @@ data class LazyMessage(
 	val messageID: Int,
 	val employeeID: Int?,
 	val alignment: Alignment,
+	val backgroundColor: Color,
 	var displayingData: Boolean,
 	var displayingName: Boolean,
-	var backgroundColor: Color,
 	var addTopPadding: Boolean,
 
 )
@@ -72,7 +72,7 @@ data class Room(
 	var lastMsgID: Int?,
 	val lastMsgRead: MutableState<Int?>,
 ) {
-//	val messagesOrder = mutableStateListOf<OrderPair>()
+//	val messagesOrder = mutableListOf<OrderPair>()
 	val messagesLazyOrder = mutableStateListOf<LazyMessage>()
 
 //	States

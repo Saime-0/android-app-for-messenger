@@ -45,7 +45,7 @@ fun Rooms(
 	val screenStatus = remember {
 		mutableStateOf(ScreenStatus.NONE)
 	}
-	var errMsg: String = remember { "" }
+	var errMsg by remember { mutableStateOf("") }
 
 	SideEffect {
 		if (Cache.Data.rooms.isEmpty() && screenStatus.equal(ScreenStatus.NONE))

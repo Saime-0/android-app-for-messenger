@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.delay
 import pkg.ProfileQuery
 import pkg.SubscribeSubscription
 import pkg.fragment.*
@@ -128,23 +129,26 @@ suspend fun Cache.fillRoomMessages(backend: Backend, messages: MessagesForRoom) 
 			}
 		}
 	}
-
 }
 
-fun Room.addLazyMessage(msg: Message) {
-	println("Room.addLazyMessage")
+suspend fun Room.addLazyMessage(msg: Message) {
+	println("Room.addLazyMessage - ${msg.msgID}")
 	// Создаю объект
 	LazyMessage(
 		messageID = msg.msgID,
 		employeeID = msg.empID,
 		alignment = if (msg.empID == null || msg.empID != Cache.Me.ID) Alignment.CenterStart else Alignment.CenterEnd,
+		backgroundColor = (
+				if (msg.empID == null || msg.empID != Cache.Me.ID) MessageBackgroundCC
+				else MessageMeBackgroundCC),
 		displayingData = false, // nope
 		displayingName = false, // nope
-		backgroundColor = Color.White, // nope
 		addTopPadding = false, // nope
 	).let { newMsg ->
 		messagesLazyOrder.add(newMsg) //потом добавляю его в список
+		delay(30L)
 		messagesLazyOrder.sortByDescending { it.messageID } // сортирую список
+		println(messagesLazyOrder.map { it.messageID })
 		messagesLazyOrder.map { it.messageID }
 			.indexOf(newMsg.messageID)
 			.let { index -> // нахожу index объекта в отсортированном списке
@@ -155,16 +159,12 @@ fun Room.addLazyMessage(msg: Message) {
 	}
 }
 
-fun computeLazyMessage(room: Room, list: SnapshotStateList<LazyMessage>, index: Int) {
+fun computeLazyMessage(room: Room, list: List<LazyMessage>, index: Int) {
 	list[index].let { newMsg ->
 
 		displayingLazyDataTag(room, index).let { displayingData ->
 			newMsg.displayingData = displayingData
 			displayingLazyEmployeeName(room, index).let { displayingName ->
-				newMsg.backgroundColor =
-					if (newMsg.messageID != room.markedMessage.messageID.value)
-						if (newMsg.employeeID == null || newMsg.employeeID != Cache.Me.ID) MessageBackgroundCC else MessageMeBackgroundCC
-					else MarkedMessageBackgroundCC
 				newMsg.displayingName =
 					newMsg.employeeID != null && newMsg.employeeID != Cache.Me.ID && room.view != RoomType.BLOG && (displayingData || displayingName)
 				newMsg.addTopPadding = displayingName && !displayingData

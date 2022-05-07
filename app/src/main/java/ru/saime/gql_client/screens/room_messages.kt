@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,20 +14,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.insets.navigationBarsWithImePadding
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import okhttp3.internal.wait
 import pkg.type.MsgCreated
 import pkg.type.RoomType
 import ru.saime.gql_client.*
@@ -35,12 +37,11 @@ import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.backend.orderRoomMessages
 import ru.saime.gql_client.backend.readMessage
 import ru.saime.gql_client.backend.sendMessage
-import ru.saime.gql_client.cache.Cache
-import ru.saime.gql_client.cache.Message
-import ru.saime.gql_client.cache.Room
+import ru.saime.gql_client.cache.*
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.utils.*
 import ru.saime.gql_client.widgets.EmptyScreen
+import java.time.Duration
 import java.util.*
 
 suspend fun sendMessage(
@@ -67,17 +68,14 @@ suspend fun sendMessage(
 
 }
 
-val c1: Calendar = Calendar.getInstance()
-val c2: Calendar = Calendar.getInstance()
-
 
 @Composable
 fun RoomMessages(backend: Backend, room: Room) {
 	val screenStatus = remember {
 		mutableStateOf(ScreenStatus.NONE)
 	}
-	var errMsg: String = remember { "" }
-
+	var errMsg by remember { mutableStateOf("") }
+	val focusRequester = remember { FocusRequester() }
 
 	Scaffold(
 		backgroundColor = BackgroundCC,
@@ -145,19 +143,24 @@ fun RoomMessages(backend: Backend, room: Room) {
 									ScreenStatus.ERROR
 								} else {
 									if (room.lastMsgRead.value != null)
-										room.messagesLazyOrder.forEachIndexed { i, pair ->
-											println("i - $i, pair - $pair")
-											if (pair.messageID == room.lastMsgRead.value!!) {
-												println("go to - ${pair.messageID}")
-												MainScope().launch {
-													room.lazyListState.scrollToItem(
-														i
-													)
+										run find@ { // потому из форича по другому не выйти
+											room.messagesLazyOrder.forEachIndexed { i, pair ->
+												println("i - ($i)")
+												// <= потому что список уже должен быть осортированным по убыванию
+												// когда находится значение меньшее либо равное последнему прочитаному,
+												// то скроллится к нему, то есть до того которое либо точно прочитано либо прочтино последнее
+												if (pair.messageID <= room.lastMsgRead.value!!) {
+//													println("go to - ${pair.messageID}")
+													MainScope().launch {
+//													delay(100L)
+														room.lazyListState.scrollToItem(i)
+													}
+													return@find
 												}
-												return@forEachIndexed
-											}
 
+											}
 										}
+
 									ScreenStatus.OK
 								}
 							)
@@ -180,17 +183,31 @@ fun RoomMessages(backend: Backend, room: Room) {
 				}
 			}
 			if (room.view == RoomType.TALK) {
+				LaunchedEffect(room.lazyListState) {
+					snapshotFlow { room.markedMessage.messageID.value }
+						.map { it != null }
+						.filter { it }
+						.collect {
+							focusRequester.requestFocus()
+//							room.messagesLazyOrder
+//								.map { it.messageID }
+//								.indexOf(room.markedMessage.messageID.value).let {
+//									if (it != -1)
+//										room.lazyListState.animateScrollToItem(it)
+//								}
+						}
+				}
 				MarkedMessage(
 					msgID = room.markedMessage.messageID.value,
 				)
 				Row(
 					modifier = Modifier
 						.fillMaxWidth()
-						.background(DividerDarkCC),
+						.background(DefaultTripleBarBackgroundCC),
 					verticalAlignment = Alignment.Bottom,
 					horizontalArrangement = Arrangement.Center,
 				) {
-					MessageInput(room)
+					MessageInput(room, Modifier.focusRequester(focusRequester))
 					IconButton(
 						modifier = Modifier.size(66.dp),
 						onClick = {
@@ -217,12 +234,6 @@ fun GoToDown(
 	scope: CoroutineScope,
 	modifier: Modifier = Modifier
 ) {
-//	if (isDisplaying)
-//		Icon(
-//			Icons.Default.ArrowDropDown,
-//			contentDescription = null,
-//			tint = ProfileDimCC
-//		)
 	if (room.displayingGoDown.value)
 		FloatingActionButton(
 			content = {
@@ -239,38 +250,7 @@ fun GoToDown(
 			backgroundColor = MessageBackgroundCC,
 			contentColor = Color.White,
 		)
-//		IconButton(
-//			onClick = {
-//				scope.launch { room.lazyListState.animateScrollToItem(0) }
-//			},
-//			modifier = modifier
-//				.size(50.dp)
-//				.background(MessageBackgroundCC)
-//				.border(1.dp, Color.Red, shape = CircleShape)
-//		) {
-//			Icon(
-//				Icons.Default.ArrowDropDown,
-//				contentDescription = null,
-//				tint = ProfileDimCC
-//			)
-//
-//		}
 }
-
-//fun displayingEmployeeName(room: Room, indexOfPairInOrder: Int): Boolean {
-//	return indexOfPairInOrder + 1 == room.messagesOrder.size || room.messagesOrder[indexOfPairInOrder].employeeID != room.messagesOrder[indexOfPairInOrder + 1].employeeID
-//}
-//
-//
-//fun displayingDataTag(room: Room, indexOfPairInOrder: Int): Boolean {
-//	if (indexOfPairInOrder + 1 == room.messagesOrder.size) return true
-//
-//	c1.setTime(Date(Cache.Data.messages[room.messagesOrder[indexOfPairInOrder].messageID]!!.createdAt))
-//	c2.setTime(Date(Cache.Data.messages[room.messagesOrder[indexOfPairInOrder + 1].messageID]!!.createdAt))
-//
-//	return c1.get(Calendar.DAY_OF_YEAR) != c2.get(Calendar.DAY_OF_YEAR)
-//			|| c1.get(Calendar.YEAR) != c2.get(Calendar.YEAR)
-//}
 
 
 @Composable
@@ -280,8 +260,8 @@ fun MarkedMessage(msgID: Int?) {
 			Cache.Data.rooms[msg.roomID]?.let { room ->
 				Row(
 					modifier = Modifier
-						.background(DividerDarkCC)
-						.padding(horizontal = 40.dp, vertical = 6.dp),
+						.background(DefaultTripleBarBackgroundCC)
+						.padding(horizontal = 40.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
 					ReplayedMessage(
@@ -313,6 +293,14 @@ fun MarkedMessage(msgID: Int?) {
 	}
 }
 
+fun displayingUnreadTag(room: Room, unreadMsgID: Int?, indexOfLazyMessage: Int): Boolean {
+	return indexOfLazyMessage != 0
+			&& indexOfLazyMessage + 1 != room.messagesLazyOrder.size
+			&& (unreadMsgID == null
+			|| room.messagesLazyOrder[indexOfLazyMessage + 1].messageID <= unreadMsgID && room.messagesLazyOrder[indexOfLazyMessage].messageID > unreadMsgID)
+
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ShowMessages(
@@ -321,6 +309,9 @@ fun ShowMessages(
 	modifier: Modifier = Modifier
 ) {
 	val coroutineScope = rememberCoroutineScope()
+	var unreadTad = remember {
+		room.lastMsgRead.value
+	}
 
 	println("загружается ShowMessages")
 //	val lazyListState = rememberForeverLazyListState(Screen.RoomMessages(room.roomID).routeWithArgs)
@@ -337,22 +328,23 @@ fun ShowMessages(
 		) { indexInColumn, lazyMessage ->
 
 			Cache.Data.messages[lazyMessage.messageID]?.let { msg ->
-				if (indexInColumn == 0)
-					Box(Modifier.height(5.dp))
+
+				// top padding
+				if (indexInColumn == 0) Box(Modifier.height(5.dp))
 				Row(
 					verticalAlignment = Alignment.Bottom,
 					horizontalArrangement = Arrangement.Start
 				) {
-					if (room.markedMessage.messageID.value != null && msg.msgID == room.markedMessage.messageID.value)
-						Card(
-							modifier = Modifier
-								.padding(3.dp)
-								.size(30.dp),
-							shape = CircleShape,
-							backgroundColor = MainBrightCC
-						) {
-							Icon(Icons.Filled.Check, null, tint = MainTextCC)
-						}
+//					if (room.markedMessage.messageID.value != null && msg.msgID == room.markedMessage.messageID.value)
+//						Card(
+//							modifier = Modifier
+//								.padding(3.dp)
+//								.size(30.dp),
+//							shape = CircleShape,
+//							backgroundColor = MainBrightCC
+//						) {
+//							Icon(Icons.Filled.Check, null, tint = Color.White)
+//						}
 
 					Box(
 						Modifier.weight(1f),
@@ -377,7 +369,10 @@ fun ShowMessages(
 									}
 								},
 							),
-							backgroundColor = lazyMessage.backgroundColor,
+							backgroundColor = (
+									if (msg.msgID != room.markedMessage.messageID.value)
+										lazyMessage.backgroundColor
+									else MarkedMessageBackgroundCC),
 							displayAuthor = lazyMessage.displayingName,
 							addTopPadding = lazyMessage.addTopPadding
 						)
@@ -386,10 +381,12 @@ fun ShowMessages(
 
 				}
 				// здесь потому что LazyColumn.reverseLayout = true
+				// different data tag
 				if (lazyMessage.displayingData) DataTag(msg.createdAt)
+				// unread tag
+				if (displayingUnreadTag(room, unreadTad,indexInColumn)) UnreadTag()
 
 			}
-
 		}
 
 	}
@@ -470,6 +467,19 @@ fun ShowMessages(
 				}
 		}
 
+	}
+}
+
+@Composable
+fun UnreadTag(modifier: Modifier = Modifier) {
+	Box(
+		modifier = modifier
+			.fillMaxWidth()
+//			.background(ProfileSectionBackgroundCC)
+		,
+		contentAlignment = Alignment.Center
+	) {
+		Text("Непрочитанные", Modifier.padding(4.dp), color = MainTextCC)
 	}
 }
 
@@ -575,8 +585,9 @@ fun MessageInput(room: Room, modifier: Modifier = Modifier) {
 			.navigationBarsWithImePadding(),
 		textStyle = TextStyle(
 			fontSize = 18.sp,
-			color = MainTextCC,
+			color = Color.White,
 		),
+		placeholder = { Text("Сообщение", color = MessageMeBackgroundCC, fontSize = 18.sp) },
 		singleLine = false,
 		maxLines = 3,
 		colors = TextFieldDefaults.textFieldColors(
@@ -586,7 +597,8 @@ fun MessageInput(room: Room, modifier: Modifier = Modifier) {
 			unfocusedIndicatorColor = Color.Transparent,
 			errorIndicatorColor = Color.Red,
 		),
-	)
+
+		)
 
 }
 

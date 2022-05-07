@@ -41,7 +41,7 @@ fun Profile(backend: Backend, empID: Int) {
 	val screenStatus = remember {
 		mutableStateOf(ScreenStatus.NONE)
 	}
-	var errMsg: String = remember { "" }
+	var errMsg by remember { mutableStateOf("") }
 
 	SideEffect {
 		if (empID != 0 && Cache.Data.employees[empID] == null) {
