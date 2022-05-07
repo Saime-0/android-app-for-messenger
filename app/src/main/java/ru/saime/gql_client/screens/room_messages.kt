@@ -1,6 +1,9 @@
 package ru.saime.gql_client.screens
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -8,16 +11,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.VerticalAlignmentLine
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextLayoutResult
@@ -27,6 +31,8 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.insets.navigationBarsWithImePadding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -36,6 +42,7 @@ import ru.saime.gql_client.*
 import ru.saime.gql_client.R
 import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.backend.orderRoomMessages
+import ru.saime.gql_client.backend.readMessage
 import ru.saime.gql_client.backend.sendMessage
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.cache.Message
@@ -82,6 +89,19 @@ fun RoomMessages(backend: Backend, room: Room) {
 
 
 	Scaffold(
+//		floatingActionButton = {
+//			if (room.displayingGoDown.value)
+//			FloatingActionButton(
+//				content = {
+//					Icon(
+//						Icons.Default.ArrowDropDown,
+//						contentDescription = null,
+//						tint = ProfileDimCC
+//					)
+//				},
+//				onClick = { coroutineScope.launch { room.lazyListState.scrollToItem(0) }}
+//			)
+//		},
 		backgroundColor = BackgroundCC,
 		topBar = {
 			TopAppBar(
@@ -135,20 +155,40 @@ fun RoomMessages(backend: Backend, room: Room) {
 						screenStatus.set(ScreenStatus.LOADING)
 						backend.orderRoomMessages(
 							roomID = room.roomID,
-							startMsg = room.lastMsgID!!,
-							created = MsgCreated.BEFORE,
+							startMsg = room.lastMsgRead.value ?: 1,
+							created =
+							if (room.lastMsgRead.value != null)
+								MsgCreated.BEFORE
+							else MsgCreated.AFTER,
 						) { err ->
 							screenStatus.set(
 								if (err != null) {
 									errMsg = err
 									ScreenStatus.ERROR
-								} else ScreenStatus.OK
+								} else {
+									if (room.lastMsgRead.value != null)
+										room.messagesOrder.forEachIndexed { i, pair ->
+											println("i - $i, pair - $pair")
+											if (pair.messageID == room.lastMsgRead.value!!) {
+												println("go to - ${pair.messageID}")
+												MainScope().launch {
+													room.lazyListState.scrollToItem(
+														i
+													)
+												}
+												return@forEachIndexed
+											}
+
+										}
+									ScreenStatus.OK
+								}
 							)
 						}
 					}
 			} else
 				screenStatus.set(ScreenStatus.OK)
 		}
+
 		Column {
 			Box(modifier = Modifier.weight(1f)) {
 				when (screenStatus.value) {
@@ -161,7 +201,6 @@ fun RoomMessages(backend: Backend, room: Room) {
 					}
 				}
 			}
-			// message input
 			if (room.view == RoomType.TALK) {
 				MarkedMessage(
 					msgID = room.markedMessage.messageID.value,
@@ -181,17 +220,61 @@ fun RoomMessages(backend: Backend, room: Room) {
 								sendMessage(backend, room)
 								room.lazyListState.scrollToItem(0)
 							}
-
 						}
 					) {
 						Icon(Icons.Filled.Send, null, tint = SendingMessageIconCC)
 					}
 				}
 
+
 			}
 		}
 
 	}
+}
+
+@Composable
+fun GoToDown(
+	room: Room,
+	scope: CoroutineScope,
+	modifier: Modifier = Modifier
+) {
+//	if (isDisplaying)
+//		Icon(
+//			Icons.Default.ArrowDropDown,
+//			contentDescription = null,
+//			tint = ProfileDimCC
+//		)
+	if (room.displayingGoDown.value)
+		FloatingActionButton(
+			content = {
+				Icon(
+					Icons.Default.KeyboardArrowDown,
+					contentDescription = null,
+					tint = ProfileDimCC
+				)
+			},
+			modifier = modifier.size(61.dp).padding(10.dp),
+			onClick = { scope.launch { room.lazyListState.scrollToItem(0) } },
+			backgroundColor = MessageBackgroundCC,
+			contentColor = Color.White,
+		)
+//		IconButton(
+//			onClick = {
+//				scope.launch { room.lazyListState.animateScrollToItem(0) }
+//			},
+//			modifier = modifier
+//				.size(50.dp)
+//				.background(MessageBackgroundCC)
+//				.border(1.dp, Color.Red, shape = CircleShape)
+//		) {
+//			Icon(
+//				Icons.Default.ArrowDropDown,
+//				contentDescription = null,
+//				tint = ProfileDimCC
+//			)
+//
+//		}
 }
 
 fun displayingEmployeeName(room: Room, indexOfPairInOrder: Int): Boolean {
@@ -255,8 +338,9 @@ fun ShowMessages(
 	room: Room,
 	modifier: Modifier = Modifier
 ) {
-	println("загружается ShowMessages")
+	val coroutineScope = rememberCoroutineScope()
 
+	println("загружается ShowMessages")
 //	val lazyListState = rememberForeverLazyListState(Screen.RoomMessages(room.roomID).routeWithArgs)
 	LazyColumn(
 		modifier = modifier
@@ -269,9 +353,10 @@ fun ShowMessages(
 			items = room.messagesOrder,
 			key = { _, orderPair -> orderPair.messageID }
 		) { indexInColumn, orderPair ->
-			room.messagesOrder.indexOf(orderPair).let { orderPairIndex ->
-				displayingDataTag(room, orderPairIndex).let { displayingData ->
+
+				displayingDataTag(room, indexInColumn).let { displayingData ->
 					Cache.Data.messages[orderPair.messageID]?.let { msg ->
+
 						if (indexInColumn == 0)
 							Box(Modifier.height(5.dp))
 						Row(
@@ -302,7 +387,7 @@ fun ShowMessages(
 							) {
 								displayingEmployeeName(
 									room,
-									orderPairIndex
+									indexInColumn
 								).let { displayingName ->
 
 									MessageBody(
@@ -336,56 +421,93 @@ fun ShowMessages(
 						}
 						if (displayingData)
 							DataTag(msg.createdAt) // здесь потому что LazyColumn.reverseLayout = true
+
+//						SideEffect {
+//							if (room.lastMsgRead.value == null || msg.msgID > room.lastMsgRead.value!!)
+//								MainScope().launch { backend.readMessage(room.roomID, msg.msgID) }
+//						}
 					}
 				}
-			}
+
 		}
 
 	}
-
-
-	LaunchedEffect(room.lazyListState) {
-		// фокусироваться на последнем на новом сообщении если прошлое было видно на экране.
-		snapshotFlow { room.lazyListState.layoutInfo.totalItemsCount }
-			.map { room.lazyListState.firstVisibleItemIndex == 1 }
-			.filter { it }
-			.collect { room.lazyListState.animateScrollToItem(0) }
+	// Кнопка го даун
+	Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+		GoToDown(room = room, scope = coroutineScope)
 	}
-	LaunchedEffect(room.lazyListState) {
-		// прогрузка сообщений при скролинге
-		snapshotFlow { room.lazyListState.layoutInfo.visibleItemsInfo }
-			.map { items ->
-				when {
-					items.last().key == room.messagesOrder.last().messageID -> 1 // при скроле вверх
-					items.first().key == room.messagesOrder.first().messageID -> 2 // при скроле вниз
-					else -> {
-						0
-					}
-				}
-			}
-//			.distinctUntilChanged()
-			.filter { it > 0 }
-			.collect {
-				when (it) {
-					1 -> {
-						if (Cache.Data.messages[room.messagesOrder.last().messageID]!!.prev != null)
-							backend.orderRoomMessages(
-								roomID = room.roomID,
-								startMsg = room.messagesOrder.last().messageID,
-								created = MsgCreated.BEFORE,
-							)
-					}
-					2 -> {
-						if (Cache.Data.messages[room.messagesOrder.first().messageID]!!.next != null)
-							backend.orderRoomMessages(
-								roomID = room.roomID,
-								startMsg = room.messagesOrder.first().messageID,
-								created = MsgCreated.AFTER,
-							)
-					}
-				}
-			}
 
+	LaunchedEffect(room.lazyListState) {
+
+		// фокусироваться на последнем на новом сообщении если прошлое было видно на экране.
+		launch  {
+			snapshotFlow { room.lazyListState.layoutInfo.totalItemsCount }
+				.map { room.lazyListState.firstVisibleItemIndex == 1 }
+				.filter { it }
+				.collect { room.lazyListState.animateScrollToItem(0) }
+		}
+
+		// показывать скрелку вниз для скорла к последним сообщениям
+		launch { // если добавить диспатчер то приложение будет падать с ошибкой "стейт читается когда снимок еще не был создан"
+			snapshotFlow { room.lazyListState.layoutInfo.visibleItemsInfo }
+				.map { list ->
+					if (list.isNotEmpty())
+						list.first().index > 4
+					else false
+				}
+				.distinctUntilChanged()
+				.collect { room.displayingGoDown.value = it }
+		}
+
+		// чтение сообщений
+		launch {
+			snapshotFlow { room.lazyListState.layoutInfo.visibleItemsInfo }
+				.map {
+					room.lastMsgID != null && room.lastMsgRead.value == null || it.first().key as Int > room.lastMsgRead.value!!
+				}
+				.filter { it }
+				.collect {
+					backend.readMessage(
+						room.roomID,
+						room.lazyListState.layoutInfo.visibleItemsInfo.first().key as Int
+					)
+				}
+		}
+
+		// прогрузка сообщений при скролинге
+		launch(Dispatchers.IO) {
+			snapshotFlow { room.lazyListState.layoutInfo.visibleItemsInfo }
+				.map { items ->
+					when {
+						items.last().key == room.messagesOrder.last().messageID -> 1 // при скроле вверх
+						items.first().key == room.messagesOrder.first().messageID -> 2 // при скроле вниз
+						else -> {
+							0
+						}
+					}
+				}
+				.filter { it > 0 }
+				.collect {
+					when (it) {
+						1 -> {
+							if (Cache.Data.messages[room.messagesOrder.last().messageID]!!.prev != null)
+								backend.orderRoomMessages(
+									roomID = room.roomID,
+									startMsg = room.messagesOrder.last().messageID,
+									created = MsgCreated.BEFORE,
+								)
+						}
+						2 -> {
+							if (Cache.Data.messages[room.messagesOrder.first().messageID]!!.next != null)
+								backend.orderRoomMessages(
+									roomID = room.roomID,
+									startMsg = room.messagesOrder.first().messageID,
+									created = MsgCreated.AFTER,
+								)
+						}
+					}
+				}
+		}
 
 	}
 }
@@ -445,6 +567,7 @@ fun MessageBody(
 				if (msg.targetID != null && Cache.Data.messages[msg.targetID] != null)
 					ReplayedMessage(Cache.Data.messages[msg.targetID]!!)
 				TextMessageBody(msg.body)
+				TextMessageData("(${msg.msgID})")
 			}
 			TextMessageData(DateFormats.messageDate(msg.createdAt))
 		}

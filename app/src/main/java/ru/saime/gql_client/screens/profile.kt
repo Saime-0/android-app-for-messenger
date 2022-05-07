@@ -44,8 +44,7 @@ fun Profile(backend: Backend, empID: Int) {
 	var errMsg: String = remember { "" }
 
 	SideEffect {
-		if (empID != 0 && Cache.Data.employees[empID] == null || screenStatus.equal(ScreenStatus.NONE)) {
-//		if (screenStatus.equal(ScreenStatus.NONE))
+		if (empID != 0 && Cache.Data.employees[empID] == null) {
 	println("надо сделать запрос потому то employees[empID] = ${Cache.Data.employees[empID] == null} а stratus = ${screenStatus.value}")
 			MainScope().launch {
 				screenStatus.set(ScreenStatus.LOADING)
@@ -54,11 +53,11 @@ fun Profile(backend: Backend, empID: Int) {
 						errMsg = err
 						screenStatus.set(ScreenStatus.ERROR)
 					} else screenStatus.set(ScreenStatus.OK)
-
 				}
 
 			}
-		}
+		} else
+			screenStatus.set(ScreenStatus.OK)
 
 	}
 
@@ -80,7 +79,7 @@ fun ShowProfileV2(
 ) {
 	val scrollStateProfile = rememberScrollState()
 	val scrollStateTags = rememberScrollState()
-	Cache.Data.employees[if (empID == 0) Cache.Me.ID else empID]?.let { emp ->
+	Cache.Data.employees[if (empID == Cache.Me.ID) Cache.Me.ID else empID]?.let { emp ->
 		Scaffold(
 			topBar = {
 				TopAppBar(
@@ -105,19 +104,14 @@ fun ShowProfileV2(
 					verticalArrangement = Arrangement.spacedBy(23.dp),
 					horizontalAlignment = Alignment.CenterHorizontally
 				) {
-					Box(Modifier.padding(10.dp))
-//				Row( // строка с фотографией и описанием
-//					modifier = Modifier.fillMaxWidth(),
-//					verticalAlignment = Alignment.Bottom,
-//					horizontalArrangement = Arrangement.End
-//				) {
+					Box(Modifier.padding(5.dp))
 					Image(
 						painter = painterResource(id = R.drawable.avatar),
 						contentDescription = "",
 						modifier = Modifier
 //						.padding(36.dp)
 							.clip(RoundedCornerShape(10.dp))
-							.size(120.dp)
+							.size(200.dp)
 					)
 					Column( // описание
 						modifier = Modifier.fillMaxWidth(),
@@ -126,7 +120,6 @@ fun ShowProfileV2(
 					) {
 //						Box(modifier = Modifier.height(5.dp))
 						TextLargeProfile("${emp.firstName} ${emp.lastName}")
-//						TextOnlineStatusProfile("(сотрудник ${it.empID})")
 						Row(
 							verticalAlignment = Alignment.CenterVertically,
 							horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -135,35 +128,12 @@ fun ShowProfileV2(
 								if (true) "онлайн?" else "был в сети в 23:32",
 								color = OnlineIndicatorCC
 							)
-//							Card(
-//								Modifier.padding(top=4.dp).size(10.dp),
-//								shape = RoundedCornerShape(5.dp),
-//								backgroundColor = OnlineIndicatorCC
-//							){}
 						}
-						if (false && empID == 0) // TODO
-							Button(
-								onClick = { /*TODO*/ },
-								modifier = Modifier.fillMaxWidth(),
-								shape = RoundedCornerShape(10.dp),
-								colors = ButtonDefaults.buttonColors(
-									backgroundColor = DividerDarkCC
-								)
-							) {
-								TextValuesProfile(
-									"Редактировать?",
-									fontSize = 15.sp,
-									fontWeight = FontWeight.Normal
-								)
-							}
-//					DividerV2CC(Modifier.padding(top = 18.dp, start = 20.dp, end = 20.dp))
 					}
 
 
-//				}
 
-
-					if (empID == 0)
+					if (empID == Cache.Me.ID)
 						ProfileSection(
 							header = { TextSectionHeaderProfile("Контакты:") },
 						) {
@@ -182,7 +152,7 @@ fun ShowProfileV2(
 						}
 					}
 
-					if (empID == 0)
+					if (empID == Cache.Me.ID)
 						IconButton(
 							modifier = Modifier.size(66.dp),
 							onClick = {

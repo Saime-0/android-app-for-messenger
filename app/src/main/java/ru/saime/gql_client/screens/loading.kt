@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import ru.saime.gql_client.MainBrightCC
 
 @Composable
 fun Loading(
@@ -23,7 +24,8 @@ fun Loading(
 		horizontalArrangement = Arrangement.Center
 	) {
 		CircularProgressIndicator(
-			color = Color.Red
+			color = MainBrightCC,
+			strokeWidth = 3.dp
 		)
 	}
 }

@@ -1,5 +1,6 @@
 package ru.saime.gql_client.cache
 
+import androidx.compose.runtime.mutableStateOf
 import pkg.ProfileQuery
 import pkg.SubscribeSubscription
 import pkg.fragment.*
@@ -43,7 +44,7 @@ suspend fun Cache.fillRooms(backend: Backend, data: RoomsWithoutMembers) { // to
 			name = room.roomWithoutMembers.name,
 			view = room.roomWithoutMembers.view,
 			lastMsgID = room.roomWithoutMembers.lastMessageID,
-			lastMsgRead = room.roomWithoutMembers.lastMessageRead,
+			lastMsgRead = mutableStateOf(room.roomWithoutMembers.lastMessageRead),
 		)
 
 	}

@@ -8,6 +8,7 @@ import pkg.type.EventSubjectAction
 import pkg.type.EventType
 import ru.saime.gql_client.AuthorizationHeader
 import ru.saime.gql_client.PrefRefreshTokenKey
+import ru.saime.gql_client.cache.Cache
 
 suspend fun Backend.editSubscribeList(
 	action: EventSubjectAction,
@@ -42,44 +43,50 @@ suspend fun Backend.loginByCredentials(
 	login: String,
 	pass: String,
 ): String? {
-	apolloClient
-		.mutation(LoginMutation(login, pass))
-		.execute().let { response ->
-			return try {
-				accessToken = "Bearer ${response.data!!.login.onTokenPair!!.accessToken}"
-				refreshToken = response.data!!.login.onTokenPair!!.refreshToken
-				pref.edit(true) {
-					putString(PrefRefreshTokenKey, refreshToken)
-				}
-				println("успешно залогинился, токены обновлены, $accessToken")
-				orderMe()
-				pleaseSubscribe()
-				null
-			} catch (ex: Exception) {
-				println(ex)
-				response.data.toString() + "/// " + ex.toString()
+	apolloClient.mutation(
+		LoginMutation(
+			login,
+			pass
+		)
+	).execute().let { response ->
+		return try {
+			accessToken = "Bearer ${response.data!!.login.onTokenPair!!.accessToken}"
+			refreshToken = response.data!!.login.onTokenPair!!.refreshToken
+			pref.edit(true) {
+				putString(PrefRefreshTokenKey, refreshToken)
 			}
+			println("успешно залогинился, токены обновлены, $accessToken")
+			orderMe()
+			pleaseSubscribe()
+			null
+		} catch (ex: Exception) {
+			println(ex)
+			response.data.toString() + "/// " + ex.toString()
 		}
+	}
 }
 
 suspend fun Backend.refreshTokens(): String? {
-	apolloClient
-		.mutation(RefreshTokensMutation(refreshToken, Optional.presentIfNotNull(sessionKey)))
-		.execute().let { response ->
-			return try {
-				accessToken = "Bearer ${response.data!!.refreshTokens.onTokenPair!!.accessToken}"
-				this.refreshToken = response.data!!.refreshTokens.onTokenPair!!.refreshToken
-				pref.edit(true) {
-					putString(PrefRefreshTokenKey, refreshToken)
-				}
-				orderMe()
-				pleaseSubscribe()
-				null
-			} catch (ex: Exception) {
-				println(ex)
-				response.data.toString() + "/// " + ex.toString()
+	apolloClient.mutation(
+		RefreshTokensMutation(
+			refreshToken,
+			Optional.presentIfNotNull(sessionKey)
+		)
+	).execute().let { response ->
+		return try {
+			accessToken = "Bearer ${response.data!!.refreshTokens.onTokenPair!!.accessToken}"
+			this.refreshToken = response.data!!.refreshTokens.onTokenPair!!.refreshToken
+			pref.edit(true) {
+				putString(PrefRefreshTokenKey, refreshToken)
 			}
+			orderMe()
+			pleaseSubscribe()
+			null
+		} catch (ex: Exception) {
+			println(ex)
+			response.data.toString() + "/// " + ex.toString()
 		}
+	}
 }
 
 
@@ -115,4 +122,35 @@ suspend fun Backend.sendMessage(
 		}
 	}
 	return null
+}
+
+
+suspend fun Backend.readMessage(
+	roomID: Int,
+	msgID: Int,
+): String? {
+	println("попытка отправить readMessage")
+	if (Backend.States.ReadingMessage) return "подождите.."
+	Backend.States.ReadingMessage = true
+	apolloClient.mutation(
+		ReadMessageMutation(
+			roomID = roomID,
+			msgID = msgID,
+		)
+	).addHttpHeader(AuthorizationHeader, accessToken).execute().let { response ->
+		return try {
+			if (response.data != null)
+				if (response.data!!.readMsg.onSuccessful != null) {
+					Cache.Data.rooms[roomID]?.lastMsgRead?.value = msgID
+					null
+				}
+				else response.data!!.readMsg.onAdvancedError!!.toString()
+			else response.errors!!.toString()
+		} catch (ex: Exception) {
+			println(ex)
+			ex.toString()
+		}finally {
+			Backend.States.ReadingMessage = false
+		}
+	}
 }

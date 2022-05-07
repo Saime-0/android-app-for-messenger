@@ -45,3 +45,18 @@ mutation SendMessage($text: String!, $roomID: ID!, $replyID: ID) {
         }
     }
 }
+
+mutation ReadMessage($roomID: ID! $msgID: ID!) {
+    readMsg(
+        roomID: $roomID
+        msgID: $msgID
+    ) {
+        ... on AdvancedError {
+            code
+            error
+        }
+        ... on Successful {
+            success
+        }
+    }
+}

@@ -1,10 +1,7 @@
 package ru.saime.gql_client.cache
 
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import pkg.type.RoomType
 import java.lang.Exception
 import java.util.*
@@ -61,12 +58,15 @@ data class Room(
 	val name: String,
 	val view: RoomType,
 	var lastMsgID: Int?,
-	val lastMsgRead: Int?,
+	val lastMsgRead: MutableState<Int?>,
 ) {
 	val messagesOrder = mutableStateListOf<OrderPair>()
+
+//	States
 	val currentInputMessageText = mutableStateOf("")
 	val lazyListState = LazyListState()
 	var markedMessage = MarkedPair(mutableStateOf(null), 0)
+	val displayingGoDown = mutableStateOf(false)
 }
 
 data class Employee(

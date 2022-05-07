@@ -16,12 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import pkg.type.EventSubjectAction
 import pkg.type.EventType
 import pkg.type.MsgCreated
@@ -88,12 +86,14 @@ fun ShowRooms(
 	val scope = rememberCoroutineScope()
 	val navigate = CategoryNavigate(backend, scaffoldState, scope)
 
+	val sortedRoomList = Cache.Data.rooms.values.toList().sortedByDescending { it.pos }
+
 	Scaffold(
 		scaffoldState = scaffoldState,
 		drawerContent = {
 			navigate.DockCategory(Screen.Guide.name, Screen.Guide.routeRef)
 			navigate.DockCategory(Screen.Rooms.name, Screen.Rooms.routeRef)
-			navigate.DockCategory(Screen.Profile().name, Screen.Profile(0).routeWithArgs)
+			navigate.DockCategory(Screen.Profile().name, Screen.Profile(Cache.Me.ID).routeWithArgs)
 		},
 		topBar = {
 			TopAppBar(
@@ -113,47 +113,40 @@ fun ShowRooms(
 		},
 		backgroundColor = BackgroundCC,
 	) {
-		if (Cache.Data.rooms.isNotEmpty())
+		LaunchedEffect(lazyListState) {
+			launch(Dispatchers.IO) {
+				snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo }
+					.map { list ->
+						if (list.isNotEmpty())
+							Cache.Data.rooms[list.last().key].let { room ->
+								if (room != null)
+									room.pos != 2 && Cache.Data.rooms.minOf { it.value.pos } == room.pos
+								else
+									false
+							}
+						else false
+					}
+					.filter { it }
+					.collect {
+						backend.orderMeRooms(offset = Cache.Data.rooms.size)
+					}
+			}
+
+		}
+		if (Cache.Data.rooms.isNotEmpty()) {
 			LazyColumn(
 				modifier = Modifier.fillMaxWidth(),
 				state = lazyListState,
 			) {
 				itemsIndexed(
-					items = Cache.Data.rooms.values.toList().sortedByDescending { it.pos },
-					key = { _, room -> room.roomID},
-				) { index, room ->
-						if (room.pos != 2 && Cache.Data.rooms.minOf { it.value.pos } == room.pos){
-							runBlocking {
-								backend.orderMeRooms(offset = Cache.Data.rooms.size)
-							}
-						}
-						else {
-							RoomCard(room, backend, Modifier.padding(top = 9.dp))
-						}
-
-
+					items = sortedRoomList,
+					key = { _, room -> room.roomID },
+				) { _, room ->
+					RoomCard(room, backend, Modifier.padding(top = 9.dp))
 				}
 
 			}
-
-//			LaunchedEffect(lazyListState) {
-//				// прогрузка комнат при скролинге
-//				snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo }
-//					.map { items ->
-//						println("roomList[items.last().index].roomID = ${roomList[items.last().index].roomID}")
-//						println("roomList.last().roomID = ${roomList.last().roomID}")
-//						Cache.Data.rooms.isNotEmpty()
-//								&& (roomList[items.last().index].roomID == roomList.last().roomID) // при скроле вниз
-//					}
-//					.filter { it }
-//					.collect {
-////					Cache.Data.rooms[Cache.Data.roomsOrder.last()]?.let {
-//						backend.orderMeRooms(offset = lazyListState.layoutInfo.totalItemsCount)
-////					}
-//					}
-//
-//			}
-
+		}
 	}
 }
 

@@ -25,6 +25,7 @@ class Backend(
 	val vibrateHelper = VibrateHelper(activity.baseContext)
 	object States {
 		var SendingMessage: Boolean = false
+		var ReadingMessage: Boolean = false
 		var WebSocketConnectionEstablished: Boolean = false
 	}
 
