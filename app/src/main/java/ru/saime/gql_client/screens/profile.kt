@@ -31,6 +31,7 @@ import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.utils.ScreenStatus
 import ru.saime.gql_client.utils.equal
 import ru.saime.gql_client.utils.set
+import ru.saime.gql_client.widgets.Avatar
 import ru.saime.gql_client.widgets.DockSpacer
 import ru.saime.gql_client.widgets.EmptyScreen
 import ru.saime.gql_client.widgets.ScreenHorizontalPadding
@@ -43,33 +44,49 @@ fun Profile(backend: Backend, empID: Int) {
 	}
 	var errMsg by remember { mutableStateOf("") }
 
-	SideEffect {
-		if (empID != 0 && Cache.Data.employees[empID] == null) {
-	println("надо сделать запрос потому то employees[empID] = ${Cache.Data.employees[empID] == null} а stratus = ${screenStatus.value}")
-			MainScope().launch {
-				screenStatus.set(ScreenStatus.LOADING)
-				backend.orderEmployeeProfile(empID = empID).let { err ->
-					if (err != null) {
-						errMsg = err
-						screenStatus.set(ScreenStatus.ERROR)
-					} else screenStatus.set(ScreenStatus.OK)
+	Scaffold(
+		topBar = {
+			TopAppBar(
+				navigationIcon = {
+					IconButton(onClick = {
+						backend.mainNavController.popBackStack()
+					}) {
+						Icon(Icons.Filled.ArrowBack, null, tint = MainTextCC)
+					}
+				},
+				contentColor = MainTextCC,
+				backgroundColor = DefaultTripleBarBackgroundCC,
+				title = { Text("Сотрудник № $empID") })
+		},
+		backgroundColor = BackgroundCC
+	) {
+		SideEffect {
+			if (empID != 0 && Cache.Data.employees[empID] == null) {
+				println("надо сделать запрос потому то employees[empID] = ${Cache.Data.employees[empID] == null} а stratus = ${screenStatus.value}")
+				MainScope().launch {
+					screenStatus.set(ScreenStatus.LOADING)
+					backend.orderEmployeeProfile(empID = empID).let { err ->
+						if (err != null) {
+							errMsg = err
+							screenStatus.set(ScreenStatus.ERROR)
+						} else screenStatus.set(ScreenStatus.OK)
+					}
+
 				}
+			} else
+				screenStatus.set(ScreenStatus.OK)
 
+		}
+
+		when (screenStatus.value) {
+			ScreenStatus.LOADING -> Loading(Modifier.fillMaxSize())
+			ScreenStatus.ERROR -> ErrorComponent(msg = errMsg, modifier = Modifier.fillMaxSize())
+			ScreenStatus.OK -> ShowProfileV2(empID, backend)
+			else -> {
+				EmptyScreen(true)
 			}
-		} else
-			screenStatus.set(ScreenStatus.OK)
-
-	}
-
-	when (screenStatus.value) {
-		ScreenStatus.LOADING -> Loading(Modifier.fillMaxSize())
-		ScreenStatus.ERROR -> ErrorComponent(msg = errMsg, modifier = Modifier.fillMaxSize())
-		ScreenStatus.OK -> ShowProfileV2(empID, backend)
-		else -> {
-			EmptyScreen(true)
 		}
 	}
-
 }
 
 @Composable
@@ -80,92 +97,74 @@ fun ShowProfileV2(
 	val scrollStateProfile = rememberScrollState()
 	val scrollStateTags = rememberScrollState()
 	Cache.Data.employees[if (empID == Cache.Me.ID) Cache.Me.ID else empID]?.let { emp ->
-		Scaffold(
-			topBar = {
-				TopAppBar(
-					navigationIcon = {
-						IconButton(onClick = {
-							backend.mainNavController.popBackStack()
-						}) {
-							Icon(Icons.Filled.ArrowBack, null, tint = MainTextCC)
-						}
-					},
-					contentColor = MainTextCC,
-					backgroundColor = DefaultTripleBarBackgroundCC,
-					title = { Text("Сотрудник № ${emp.empID}")})
-			},
-			backgroundColor = BackgroundCC
+
+
+		Column(
+			modifier = Modifier
+				.padding(horizontal = 16.dp)
+				.verticalScroll(scrollStateProfile),
+			verticalArrangement = Arrangement.spacedBy(23.dp),
+			horizontalAlignment = Alignment.CenterHorizontally
 		) {
+			Box(Modifier.padding(5.dp)) // top padding
 
-				Column(
-					modifier = Modifier
-						.padding(horizontal = 16.dp)
-						.verticalScroll(scrollStateProfile),
-					verticalArrangement = Arrangement.spacedBy(23.dp),
-					horizontalAlignment = Alignment.CenterHorizontally
-				) {
-					Box(Modifier.padding(5.dp)) // top padding
-
-					Image(
-						painter = painterResource(id = R.drawable.avatar),
-						contentDescription = "",
-						modifier = Modifier
-//						.padding(36.dp)
-							.clip(RoundedCornerShape(10.dp))
-							.size(200.dp)
-					)
-					Column( // описание
-						modifier = Modifier.fillMaxWidth(),
-						horizontalAlignment = Alignment.CenterHorizontally,
-						verticalArrangement = Arrangement.spacedBy(4.dp)
-					) {
+			Avatar(
+				Modifier
+					.clip(RoundedCornerShape(10.dp))
+					.size(200.dp)
+			)
+			Column( // описание
+				modifier = Modifier.fillMaxWidth(),
+				horizontalAlignment = Alignment.CenterHorizontally,
+				verticalArrangement = Arrangement.spacedBy(4.dp)
+			) {
 //						Box(modifier = Modifier.height(5.dp))
-						TextLargeProfile("${emp.firstName} ${emp.lastName}")
-						Row(
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(4.dp)
-						) {
-							TextOnlineStatusProfile(
-								if (true) "онлайн?" else "был в сети в 23:32",
-								color = OnlineIndicatorCC
-							)
-						}
-					}
-
-
-
-					ProfileSection(
-						header = { TextSectionHeaderProfile("Контакты:") },
-					) {
-						TextValuesProfile(emp.email)
-						TextValuesProfile(emp.phone)
-					}
-
-					ProfileSection(
-						modifier = Modifier
-							.heightIn(0.dp, 400.dp)
-							.verticalScroll(scrollStateTags),
-						header = { TextSectionHeaderProfile("Должности:") }
-					) {
-						for (tagID in emp.tagIDs) {
-							TextValuesProfile(Cache.Data.tags[tagID]?.name.toString())
-						}
-					}
-
-					if (empID == Cache.Me.ID)
-						IconButton(
-							modifier = Modifier.size(66.dp),
-							onClick = {
-								backend.logout()
-							}
-						) {
-							Icon(Icons.Filled.ExitToApp, null, tint = Color.Red)
-						}
-
-					Box(Modifier.padding(5.dp)) // bottom padding
+				TextLargeProfile("${emp.firstName} ${emp.lastName}")
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(4.dp)
+				) {
+					TextOnlineStatusProfile(
+						if (true) "онлайн?" else "был в сети в 23:32",
+						color = OnlineIndicatorCC
+					)
 				}
+			}
+
+
+
+			ProfileSection(
+				header = { TextSectionHeaderProfile("Контакты:") },
+			) {
+				TextValuesProfile(emp.email)
+				TextValuesProfile(emp.phone)
+			}
+
+			ProfileSection(
+				modifier = Modifier
+					.heightIn(0.dp, 400.dp)
+					.verticalScroll(scrollStateTags),
+				header = { TextSectionHeaderProfile("Должности:") }
+			) {
+				for (tagID in emp.tagIDs) {
+					TextValuesProfile(Cache.Data.tags[tagID]?.name.toString())
+				}
+			}
+
+			if (empID == Cache.Me.ID)
+				IconButton(
+					modifier = Modifier.size(66.dp),
+					onClick = {
+						backend.logout()
+					}
+				) {
+					Icon(Icons.Filled.ExitToApp, null, tint = Color.Red)
+				}
+
+			Box(Modifier.padding(5.dp)) // bottom padding
 		}
 	}
+
 }
 
 @Composable

@@ -37,6 +37,7 @@ import ru.saime.gql_client.backend.sendMessage
 import ru.saime.gql_client.cache.*
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.utils.*
+import ru.saime.gql_client.widgets.Avatar
 import ru.saime.gql_client.widgets.EmptyScreen
 
 suspend fun sendMessage(
@@ -91,10 +92,7 @@ fun RoomMessages(backend: Backend, room: Room) {
 					Row(
 						verticalAlignment = Alignment.CenterVertically
 					) {
-						Image(
-							painter = painterResource(id = R.drawable.avatar),
-							contentDescription = "",
-							modifier = Modifier
+						Avatar(Modifier
 								.padding(end = 17.dp, top = 4.dp, bottom = 4.dp)
 								.size(40.dp)
 								.clip(CircleShape)
@@ -243,7 +241,7 @@ fun GoToDown(
 			modifier = modifier
 				.size(61.dp)
 				.padding(10.dp),
-			onClick = { scope.launch { room.scrollToIndex(backend, 0) } },
+			onClick = { scope.launch { room.scrollToMsg(backend, room.lastMsgID!!) } },
 			backgroundColor = MessageBackgroundCC,
 			contentColor = Color.White,
 		)
@@ -306,7 +304,7 @@ fun ShowMessages(
 	modifier: Modifier = Modifier
 ) {
 	val coroutineScope = rememberCoroutineScope()
-	val unreadTad = remember {
+	var unreadTad = remember {
 		room.lastMsgRead.value
 	}
 	var displayingLoading by remember {
@@ -455,7 +453,7 @@ fun ShowMessages(
 //					Но что если я заnullил в бд его прочитанное,  тогда клиет не будет совсем реагировать на свои сообщеня, а лучше пусть реагирует
 //					Можно добавить что если если это свое сообщение и оно последнее(prev == null)
 //					То тогда не надо читать..
-					room.lastMsgID != null && (room.lastMsgRead.value == null || it.first().key as Int > room.lastMsgRead.value!!)
+					it.isNotEmpty() && room.lastMsgID != null && (room.lastMsgRead.value == null || it.first().key as Int > room.lastMsgRead.value!!)
 				}
 				.filter { it }
 				.collect {

@@ -29,6 +29,7 @@ val ProfileSectionBackgroundCC = Color(0xFF2B2D31)
 val MainBrightDoubleCC = Color(MainBrightCC.value * 1.5.toUInt())
 val DividerDarkCC = Color(0xFF383838)
 val NavigationBarCC = Color(0xFF151515)
+val SideMenuCC = Color(0xFF262A31)
 //val NavigationBarCC = Color(0xFF181818)
 
 val DefaultTripleBarBackgroundCC = Color(0xFF29323C)

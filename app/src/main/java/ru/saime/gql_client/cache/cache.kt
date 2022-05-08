@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import pkg.type.RoomType
 import java.lang.Exception
 import java.util.*
+import kotlin.reflect.KProperty
 
 enum class LoadedDataType {
 	Me,
@@ -87,7 +88,9 @@ data class Employee(
 	val email: String,
 	val phone: String,
 	val tagIDs: MutableList<Int> = mutableListOf(),
-)
+) {
+	operator fun getValue(nothing: Nothing?, property: KProperty<*>): Employee = this
+}
 
 data class Message(
 	val msgID: Int,

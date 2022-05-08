@@ -4,6 +4,8 @@ import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.*
 
+const val version = "22.129"
+
 const val PrefTableName = "user-table"
 const val PrefRefreshTokenKey = "rt"
 const val PrefMeEmpIDKey = "id"

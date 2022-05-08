@@ -189,16 +189,16 @@ suspend fun Backend.findRoomMessage(
 		)
 	).addHttpHeader(AuthorizationHeader, accessToken).execute().let { response ->
 		return try {
-				if (response.data != null)
-					if (response.data!!.messages.onMessages != null) {
-						Cache.fillRoomMessages(
-							this,
-							response.data!!.messages.onMessages!!.messagesForRoom
-						)
-						null
-					} else
-						response.data!!.messages.onAdvancedError!!.toString()
-				else response.errors!!.toString()
+			if (response.data != null)
+				if (response.data!!.messages.onMessages != null) {
+					Cache.fillRoomMessages(
+						this,
+						response.data!!.messages.onMessages!!.messagesForRoom
+					)
+					null
+				} else
+					response.data!!.messages.onAdvancedError!!.toString()
+			else response.errors!!.toString()
 		} catch (ex: Exception) {
 			println(ex)
 			ex.toString()

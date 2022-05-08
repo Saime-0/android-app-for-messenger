@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.*
@@ -34,9 +35,7 @@ import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.utils.ScreenStatus
 import ru.saime.gql_client.utils.equal
 import ru.saime.gql_client.utils.set
-import ru.saime.gql_client.widgets.CategoryNavigate
-import ru.saime.gql_client.widgets.EmptyScreen
-import ru.saime.gql_client.widgets.rememberForeverLazyListState
+import ru.saime.gql_client.widgets.*
 
 @Composable
 fun Rooms(
@@ -45,56 +44,16 @@ fun Rooms(
 	val screenStatus = remember {
 		mutableStateOf(ScreenStatus.NONE)
 	}
-	var errMsg by remember { mutableStateOf("") }
-
-	SideEffect {
-		if (Cache.Data.rooms.isEmpty() && screenStatus.equal(ScreenStatus.NONE))
-			MainScope().launch {
-				screenStatus.set(ScreenStatus.LOADING)
-				backend.orderMeRooms(0).let { err ->
-					if (err != null) {
-						errMsg = err
-						screenStatus.set(ScreenStatus.ERROR)
-					} else {
-						screenStatus.set(ScreenStatus.OK)
-					}
-				}
-			}
-		else
-			screenStatus.set(ScreenStatus.OK)
-	}
-
-	when (screenStatus.value) {
-		ScreenStatus.LOADING -> Loading(Modifier.fillMaxSize())
-		ScreenStatus.ERROR -> ErrorComponent(errMsg, Modifier.fillMaxSize())
-		ScreenStatus.OK -> ShowRooms(backend)
-		else -> {
-			EmptyScreen(true)
-		}
-	}
-
-
-}
-
-
-@Composable
-fun ShowRooms(
-	backend: Backend
-) {
-	val lazyListState = rememberForeverLazyListState(Screen.Rooms.routeRef)
 	val scaffoldState = rememberScaffoldState()
 	val scope = rememberCoroutineScope()
-	val navigate = CategoryNavigate(backend, scaffoldState, scope)
+	var errMsg by remember { mutableStateOf("") }
 
-	val sortedRoomList = Cache.Data.rooms.values.toList().sortedByDescending { it.pos }
 
 	Scaffold(
 		scaffoldState = scaffoldState,
-		drawerContent = {
-			navigate.DockCategory(Screen.Guide.name, Screen.Guide.routeRef)
-			navigate.DockCategory(Screen.Rooms.name, Screen.Rooms.routeRef)
-			navigate.DockCategory(Screen.Profile().name, Screen.Profile(Cache.Me.ID).routeWithArgs)
-		},
+		drawerBackgroundColor = SideMenuCC,
+		drawerScrimColor = ProfileSectionBackgroundCC,
+		drawerContent = { SideMenu(backend, scaffoldState, scope) },
 		topBar = {
 			TopAppBar(
 				navigationIcon = {
@@ -113,39 +72,75 @@ fun ShowRooms(
 		},
 		backgroundColor = BackgroundCC,
 	) {
-		LaunchedEffect(lazyListState) {
-			launch(Dispatchers.IO) {
-				snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo }
-					.map { list ->
-						if (list.isNotEmpty())
-							Cache.Data.rooms[list.last().key].let { room ->
-								if (room != null)
-									room.pos != 2 && Cache.Data.rooms.minOf { it.value.pos } == room.pos
-								else
-									false
-							}
-						else false
+		SideEffect {
+			if (Cache.Data.rooms.isEmpty() && screenStatus.equal(ScreenStatus.NONE))
+				MainScope().launch {
+					screenStatus.set(ScreenStatus.LOADING)
+					backend.orderMeRooms(0).let { err ->
+						if (err != null) {
+							errMsg = err
+							screenStatus.set(ScreenStatus.ERROR)
+						} else {
+							screenStatus.set(ScreenStatus.OK)
+						}
 					}
-					.filter { it }
-					.collect {
-						backend.orderMeRooms(offset = Cache.Data.rooms.size)
-					}
-			}
-
-		}
-		if (Cache.Data.rooms.isNotEmpty()) {
-			LazyColumn(
-				modifier = Modifier.fillMaxWidth(),
-				state = lazyListState,
-			) {
-				itemsIndexed(
-					items = sortedRoomList,
-					key = { _, room -> room.roomID },
-				) { _, room ->
-					RoomCard(room, backend, Modifier.padding(top = 9.dp))
 				}
+			else
+				screenStatus.set(ScreenStatus.OK)
+		}
 
+		when (screenStatus.value) {
+			ScreenStatus.LOADING -> Loading(Modifier.fillMaxSize())
+			ScreenStatus.ERROR -> ErrorComponent(errMsg, Modifier.fillMaxSize())
+			ScreenStatus.OK -> ShowRooms(backend)
+			else -> {
+				EmptyScreen(true)
 			}
+		}
+	}
+
+}
+
+
+@Composable
+fun ShowRooms(
+	backend: Backend,
+) {
+	val lazyListState = rememberForeverLazyListState(Screen.Rooms.routeRef)
+	val sortedRoomList = Cache.Data.rooms.values.toList().sortedByDescending { it.pos }
+
+	LaunchedEffect(lazyListState) {
+		launch(Dispatchers.IO) {
+			snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo }
+				.map { list ->
+					if (list.isNotEmpty())
+						Cache.Data.rooms[list.last().key].let { room ->
+							if (room != null)
+								room.pos != 2 && Cache.Data.rooms.minOf { it.value.pos } == room.pos
+							else
+								false
+						}
+					else false
+				}
+				.filter { it }
+				.collect {
+					backend.orderMeRooms(offset = Cache.Data.rooms.size)
+				}
+		}
+
+	}
+	if (Cache.Data.rooms.isNotEmpty()) {
+		LazyColumn(
+			modifier = Modifier.fillMaxWidth(),
+			state = lazyListState,
+		) {
+			itemsIndexed(
+				items = sortedRoomList,
+				key = { _, room -> room.roomID },
+			) { _, room ->
+				RoomCard(room, backend, Modifier.padding(top = 9.dp))
+			}
+
 		}
 	}
 }
@@ -168,10 +163,7 @@ fun RoomCard(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 //			Box(modifier = Modifier.width(8.dp))
-			Image(
-				painter = painterResource(id = ru.saime.gql_client.R.drawable.avatar),
-				contentDescription = "",
-				modifier = Modifier
+			Avatar(Modifier
 					.padding(horizontal = 12.dp, vertical = 2.dp)
 					.size(50.dp)
 					.clip(CircleShape)
