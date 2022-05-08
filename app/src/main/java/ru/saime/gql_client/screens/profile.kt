@@ -104,7 +104,8 @@ fun ShowProfileV2(
 					verticalArrangement = Arrangement.spacedBy(23.dp),
 					horizontalAlignment = Alignment.CenterHorizontally
 				) {
-					Box(Modifier.padding(5.dp))
+					Box(Modifier.padding(5.dp)) // top padding
+
 					Image(
 						painter = painterResource(id = R.drawable.avatar),
 						contentDescription = "",
@@ -133,13 +134,12 @@ fun ShowProfileV2(
 
 
 
-					if (empID == Cache.Me.ID)
-						ProfileSection(
-							header = { TextSectionHeaderProfile("Контакты:") },
-						) {
-							TextValuesProfile(Cache.Me.email)
-							TextValuesProfile(Cache.Me.phone)
-						}
+					ProfileSection(
+						header = { TextSectionHeaderProfile("Контакты:") },
+					) {
+						TextValuesProfile(emp.email)
+						TextValuesProfile(emp.phone)
+					}
 
 					ProfileSection(
 						modifier = Modifier
@@ -162,6 +162,7 @@ fun ShowProfileV2(
 							Icon(Icons.Filled.ExitToApp, null, tint = Color.Red)
 						}
 
+					Box(Modifier.padding(5.dp)) // bottom padding
 				}
 		}
 	}

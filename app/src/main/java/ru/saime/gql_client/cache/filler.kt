@@ -23,11 +23,7 @@ import java.util.*
 fun Cache.fillMe(data: ProfileQuery.OnMe) {
 	Cache.fillEmployee(data.employee.fullEmployee)
 
-	Cache.Me.run {
-		ID = data.employee.fullEmployee.empID
-		email = data.personal.email
-		phone = data.personal.phoneNumber
-	}
+	Cache.Me.ID = data.employee.fullEmployee.empID
 
 }
 
@@ -36,6 +32,8 @@ fun Cache.fillEmployee(data: FullEmployee) {
 		empID = data.empID,
 		firstName = data.firstName,
 		lastName = data.lastName,
+		email = data.email,
+		phone = data.phoneNumber,
 	)
 	for (tag in data.tags.fullTags.tags) {
 		Cache.fillTag(tag.fullTag)
@@ -123,8 +121,9 @@ suspend fun Cache.fillRoomMessages(backend: Backend, messages: MessagesForRoom) 
 				Cache.orderTargetMessageIfNotExists(backend, msgForRoom.targetMsg?.msgID)
 				Cache.orderEmployeeMessageIfNotExists(backend, msgForRoom.employee?.empID)
 				MainScope().launch {
-				if (!room.messagesLazyOrder.map { it.messageID == msgForRoom.msgID }.contains(true))
-					room.addLazyMessage(msg)
+					if (!room.messagesLazyOrder.map { it.messageID }
+							.contains(msgForRoom.msgID ))
+						room.addLazyMessage(msg)
 
 				}
 			}

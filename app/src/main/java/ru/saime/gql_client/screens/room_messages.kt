@@ -472,9 +472,10 @@ fun ShowMessages(
 		launch(Dispatchers.IO) {
 			snapshotFlow { room.lazyListState.layoutInfo.visibleItemsInfo }
 				.map { items ->
+
 					when {
-//						items.last().key == room.messagesLazyOrder.last().messageID -> 1 // при скроле вверх
-//						items.first().key == room.messagesLazyOrder.first().messageID -> 2 // при скроле вниз
+						// пытаюсь пофиксить java.util.NoSuchElementException: List is empty
+						room.lazyListState.layoutInfo.visibleItemsInfo.isEmpty() -> null
 
 						Cache.Data.messages[items.last().key]?.prev != null
 								&& !Cache.Data.messages.containsKey(Cache.Data.messages[items.last().key]?.prev)
@@ -492,10 +493,10 @@ fun ShowMessages(
 				.filter { it != null }
 				.collect {
 					delay(5L) // иначе при отправке своего сообщения будет отображаться загрузка
-					displayingLoading = MessagesLoadingDirection.TOP
+					displayingLoading = if (it!!.second == MsgCreated.BEFORE) MessagesLoadingDirection.TOP else MessagesLoadingDirection.BOTTOM
 					backend.orderRoomMessages(
 						roomID = room.roomID,
-						startMsg = it!!.first,
+						startMsg = it.first,
 						created = it.second,
 					)
 					displayingLoading = MessagesLoadingDirection.NONE

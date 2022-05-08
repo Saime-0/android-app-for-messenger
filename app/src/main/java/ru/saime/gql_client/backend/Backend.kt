@@ -128,8 +128,6 @@ class Backend(
 
 		Cache.Me.run {
 			ID = 0
-			email = ""
-			phone = ""
 		}
 		Cache.Data.run {
 			rooms.clear()

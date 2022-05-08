@@ -67,6 +67,10 @@ type Employee {
 
   lastName: String!
 
+  email: String!
+
+  phoneNumber: String!
+
   tags: Tags!
 }
 
@@ -164,8 +168,6 @@ union LoginResult = AdvancedError|TokenPair
 
 type Me {
   employee: Employee!
-
-  personal: PersonalData!
 
   rooms(params: Params!): Rooms!
 }

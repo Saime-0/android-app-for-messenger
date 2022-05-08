@@ -1,5 +1,6 @@
 package ru.saime.gql_client.cache
 
+import android.provider.ContactsContract
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,8 +22,6 @@ object Cache {
 
 	object Me {
 		var ID: Int = 0
-		var email: String = ""
-		var phone: String = ""
 	}
 
 	object Data {
@@ -85,6 +84,8 @@ data class Employee(
 	val empID: Int,
 	val firstName: String,
 	val lastName: String,
+	val email: String,
+	val phone: String,
 	val tagIDs: MutableList<Int> = mutableListOf(),
 )
 

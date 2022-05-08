@@ -8,10 +8,6 @@ query ProfileQuery {
             employee {
                ...FullEmployee
             }
-            personal {
-                email
-                phoneNumber
-            }
         }
     }
 }
@@ -154,6 +150,8 @@ fragment FullEmployee on Employee {
     empID
     firstName
     lastName
+    email
+    phoneNumber
     tags {
         ...FullTags
     }
