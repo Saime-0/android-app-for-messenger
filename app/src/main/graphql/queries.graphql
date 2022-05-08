@@ -101,13 +101,13 @@ query FindMessages(
 query RoomMessagesByRange(
     $roomID: ID!
     $start: ID!
-    $end: ID!
+    $inDirection: ID!
 ) {
     roomMessages(
         byRange: {
             roomID: $roomID
             start: $start
-            end: $end
+            inDirection: $inDirection
         }
     ) {
         ... on AdvancedError {

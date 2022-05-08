@@ -82,8 +82,9 @@ class Backend(
 					event.onNewMessage?.let { msg ->
 
 						Cache.Data.rooms[msg.roomID]?.let { room ->
-							room.lastMsgID =
-								msg.msgID // установить ид последнего сообщения в комнате
+							room.lastMsgID = msg.msgID // установить ид последнего сообщения в комнате
+							if (msg.employeeID == Cache.Me.ID)
+								room.lastMsgRead.value = msg.msgID // если это свое сообщение то сделать его прочитанным
 							Cache.Data.messages[msg.prev]?.let { prevMsg ->
 								prevMsg.next =
 									msg.msgID // для предыдущего сообщения меняю msg.next на id нового сообения

@@ -31,7 +31,7 @@ input ByRange {
 
   start: ID!
 
-  end: ID!
+  inDirection: ID!
 }
 
 input CreateMessageInput {

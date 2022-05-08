@@ -29,3 +29,9 @@ fun Loading(
 		)
 	}
 }
+
+enum class MessagesLoadingDirection {
+	TOP,
+	BOTTOM,
+	NONE,
+}

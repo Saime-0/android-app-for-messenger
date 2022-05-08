@@ -2,8 +2,6 @@ package ru.saime.gql_client.backend
 
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
 import pkg.*
 import pkg.type.MsgCreated
 import ru.saime.gql_client.AuthorizationHeader
@@ -114,71 +112,96 @@ suspend fun Backend.orderRoomMessages(
 	roomID: Int,
 	created: MsgCreated,
 	startMsg: Int,
-	callback: (err: String?) -> Unit = {}
-) {
-	println("попытка запросить orderRoomMessages")
-	val response: ApolloResponse<RoomMessagesByCreatedQuery.Data>
-	try {
-		response = apolloClient.query(
-			RoomMessagesByCreatedQuery(
-				roomID = roomID,
-				created = created,
-				startMsg = startMsg,
-				count = CountOfOrderedMessages,
-			)
-		).addHttpHeader(AuthorizationHeader, accessToken).execute()
-		if (response.data != null)
-			if (response.data!!.roomMessages.onMessages != null) {
-				Cache.fillRoomMessages(
-					this,
-					response.data!!.roomMessages.onMessages!!.messagesForRoom
-				)
-				callback.invoke(null)
-			} else
-				callback.invoke(response.data!!.roomMessages.onAdvancedError!!.toString())
-		else if (response.errors != null)
-			callback.invoke(response.errors!!.toString())
-	} catch (ex: Exception) {
-		println(ex)
-		callback.invoke(ex.toString())
+	count: Int = CountOfOrderedMessages,
+): String? {
+	println("попытка запросить orderRoomMessages(ByCreated)")
+	apolloClient.query(
+		RoomMessagesByCreatedQuery(
+			roomID = roomID,
+			created = created,
+			startMsg = startMsg,
+			count = count,
+		)
+	).addHttpHeader(AuthorizationHeader, accessToken).execute().let { response ->
+		return try {
+
+			if (response.data != null)
+				if (response.data!!.roomMessages.onMessages != null) {
+					Cache.fillRoomMessages(
+						this,
+						response.data!!.roomMessages.onMessages!!.messagesForRoom
+					)
+					null
+				} else response.data!!.roomMessages.onAdvancedError!!.toString()
+			else response.errors!!.toString()
+		} catch (ex: Exception) {
+			println(ex)
+			ex.toString()
+		}
 	}
-	return
 }
 
-suspend fun Backend.orderRoomMessage(
+suspend fun Backend.orderRoomMessages(
+	roomID: Int,
+	start: Int,
+	inDirection: Int,
+): String? {
+	println("попытка запросить orderRoomMessages(ByRange)")
+	apolloClient.query(
+		RoomMessagesByRangeQuery(
+			roomID = roomID,
+			start = start,
+			inDirection = inDirection,
+		)
+	).addHttpHeader(AuthorizationHeader, accessToken).execute().let { response ->
+		return try {
+			if (response.data != null)
+				if (response.data!!.roomMessages.onMessages != null) {
+					Cache.fillRoomMessages(
+						this,
+						response.data!!.roomMessages.onMessages!!.messagesForRoom
+					)
+					null
+				} else response.data!!.roomMessages.onAdvancedError!!.toString()
+			else response.errors!!.toString()
+		} catch (ex: Exception) {
+			println(ex)
+			ex.toString()
+		}
+	}
+}
+
+suspend fun Backend.findRoomMessage(
 	roomID: Int? = null,
 	msgID: Int? = null,
 	empID: Int? = null,
 	targetID: Int? = null,
 	textFragment: String? = null,
-	callback: (err: String?) -> Unit = {}
-) {
-	println("попытка запросить orderRoomMessage")
-	val response: ApolloResponse<FindMessagesQuery.Data>
-	try {
-		response = apolloClient.query(
-			FindMessagesQuery(
-				roomID = Optional.presentIfNotNull(roomID),
-				msgID = Optional.presentIfNotNull(msgID),
-				empID = Optional.presentIfNotNull(empID),
-				targetID = Optional.presentIfNotNull(targetID),
-				textFragment = Optional.presentIfNotNull(textFragment),
-			)
-		).addHttpHeader(AuthorizationHeader, accessToken).execute()
-		if (response.data != null)
-			if (response.data!!.messages.onMessages != null) {
-				Cache.fillRoomMessages(
-					this,
-					response.data!!.messages.onMessages!!.messagesForRoom
-				)
-				callback.invoke(null)
-			} else
-				callback.invoke(response.data!!.messages.onAdvancedError!!.toString())
-		else if (response.errors != null)
-			callback.invoke(response.errors!!.toString())
-	} catch (ex: Exception) {
-		println(ex)
-		callback.invoke(ex.toString())
+): String? {
+	println("попытка запросить findRoomMessage")
+	apolloClient.query(
+		FindMessagesQuery(
+			roomID = Optional.presentIfNotNull(roomID),
+			msgID = Optional.presentIfNotNull(msgID),
+			empID = Optional.presentIfNotNull(empID),
+			targetID = Optional.presentIfNotNull(targetID),
+			textFragment = Optional.presentIfNotNull(textFragment),
+		)
+	).addHttpHeader(AuthorizationHeader, accessToken).execute().let { response ->
+		return try {
+				if (response.data != null)
+					if (response.data!!.messages.onMessages != null) {
+						Cache.fillRoomMessages(
+							this,
+							response.data!!.messages.onMessages!!.messagesForRoom
+						)
+						null
+					} else
+						response.data!!.messages.onAdvancedError!!.toString()
+				else response.errors!!.toString()
+		} catch (ex: Exception) {
+			println(ex)
+			ex.toString()
+		}
 	}
-	return
 }

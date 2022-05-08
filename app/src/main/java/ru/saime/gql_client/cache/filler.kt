@@ -1,9 +1,7 @@
 package ru.saime.gql_client.cache
 
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -13,13 +11,12 @@ import pkg.fragment.*
 import pkg.type.EventSubjectAction
 import pkg.type.EventType
 import pkg.type.RoomType
-import ru.saime.gql_client.MarkedMessageBackgroundCC
 import ru.saime.gql_client.MessageBackgroundCC
 import ru.saime.gql_client.MessageMeBackgroundCC
 import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.backend.editSubscribeList
 import ru.saime.gql_client.backend.orderEmployeeProfile
-import ru.saime.gql_client.backend.orderRoomMessage
+import ru.saime.gql_client.backend.findRoomMessage
 import java.util.*
 
 
@@ -197,7 +194,7 @@ fun displayingLazyDataTag(room: Room, indexOfLazyMessage: Int): Boolean {
 
 suspend fun Cache.orderTargetMessageIfNotExists(backend: Backend, targetMsgID: Int?) {
 	if (targetMsgID != null && Cache.Data.messages[targetMsgID] == null) {
-		backend.orderRoomMessage(msgID = targetMsgID)
+		backend.findRoomMessage(msgID = targetMsgID)
 	}
 }
 

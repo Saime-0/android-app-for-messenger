@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -28,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import com.google.accompanist.insets.navigationBarsWithImePadding
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import okhttp3.internal.wait
 import pkg.type.MsgCreated
 import pkg.type.RoomType
 import ru.saime.gql_client.*
@@ -41,8 +38,6 @@ import ru.saime.gql_client.cache.*
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.utils.*
 import ru.saime.gql_client.widgets.EmptyScreen
-import java.time.Duration
-import java.util.*
 
 suspend fun sendMessage(
 	backend: Backend,
@@ -58,6 +53,7 @@ suspend fun sendMessage(
 			if (err == null) {
 				room.currentInputMessageText.value = ""
 				room.markedMessage.clear()
+//				room.lastMsgRead.value = room.messagesLazyOrder.first().messageID
 				callback(true)
 				return true
 			} else {
@@ -67,6 +63,7 @@ suspend fun sendMessage(
 		}
 
 }
+
 
 
 @Composable
@@ -136,14 +133,14 @@ fun RoomMessages(backend: Backend, room: Room) {
 							if (room.lastMsgRead.value != null)
 								MsgCreated.BEFORE
 							else MsgCreated.AFTER,
-						) { err ->
+						).let { err ->
 							screenStatus.set(
 								if (err != null) {
 									errMsg = err
 									ScreenStatus.ERROR
 								} else {
 									if (room.lastMsgRead.value != null)
-										run find@ { // потому из форича по другому не выйти
+										run find@{ // потому из форича по другому не выйти
 											room.messagesLazyOrder.forEachIndexed { i, pair ->
 												println("i - ($i)")
 												// <= потому что список уже должен быть осортированным по убыванию
@@ -153,7 +150,7 @@ fun RoomMessages(backend: Backend, room: Room) {
 //													println("go to - ${pair.messageID}")
 													MainScope().launch {
 														delay(20L)
-														room.lazyListState.scrollToItem(i)
+														room.scrollToIndex(backend, i)
 													}
 													return@find
 												}
@@ -162,7 +159,8 @@ fun RoomMessages(backend: Backend, room: Room) {
 										}
 									else if (room.lastMsgID != null && room.lazyListState.layoutInfo.totalItemsCount > 1)
 										MainScope().launch {
-											room.lazyListState.scrollToItem(room.lazyListState.layoutInfo.totalItemsCount-1)
+											delay(20L)
+											room.scrollToIndex(backend, room.lazyListState.layoutInfo.totalItemsCount - 1)
 										}
 
 									ScreenStatus.OK
@@ -191,18 +189,11 @@ fun RoomMessages(backend: Backend, room: Room) {
 					snapshotFlow { room.markedMessage.messageID.value }
 						.map { it != null }
 						.filter { it }
-						.collect {
-							focusRequester.requestFocus()
-//							room.messagesLazyOrder
-//								.map { it.messageID }
-//								.indexOf(room.markedMessage.messageID.value).let {
-//									if (it != -1)
-//										room.lazyListState.animateScrollToItem(it)
-//								}
-						}
+						.collect { focusRequester.requestFocus() }
 				}
 				MarkedMessage(
-					msgID = room.markedMessage.messageID.value,
+					backend,
+					room.markedMessage.messageID.value,
 				)
 				Row(
 					modifier = Modifier
@@ -217,7 +208,8 @@ fun RoomMessages(backend: Backend, room: Room) {
 						onClick = {
 							MainScope().launch {
 								sendMessage(backend, room)
-								room.lazyListState.scrollToItem(0)
+								delay(100L)
+								room.scrollToIndex(backend, 0)
 							}
 						}
 					) {
@@ -234,6 +226,7 @@ fun RoomMessages(backend: Backend, room: Room) {
 
 @Composable
 fun GoToDown(
+	backend: Backend,
 	room: Room,
 	scope: CoroutineScope,
 	modifier: Modifier = Modifier
@@ -250,7 +243,7 @@ fun GoToDown(
 			modifier = modifier
 				.size(61.dp)
 				.padding(10.dp),
-			onClick = { scope.launch { room.lazyListState.scrollToItem(0) } },
+			onClick = { scope.launch { room.scrollToIndex(backend, 0) } },
 			backgroundColor = MessageBackgroundCC,
 			contentColor = Color.White,
 		)
@@ -258,7 +251,7 @@ fun GoToDown(
 
 
 @Composable
-fun MarkedMessage(msgID: Int?) {
+fun MarkedMessage(backend: Backend, msgID: Int?) {
 	if (msgID != null) {
 		Cache.Data.messages[msgID]?.let { msg ->
 			Cache.Data.rooms[msg.roomID]?.let { room ->
@@ -273,7 +266,7 @@ fun MarkedMessage(msgID: Int?) {
 							.weight(1f)
 							.clickable {
 								MainScope().launch {
-									room.lazyListState.scrollToItem(room.markedMessage.indexInColumn)
+									room.scrollToIndex(backend, room.markedMessage.indexInColumn)
 								}
 							},
 						msg = msg
@@ -316,9 +309,19 @@ fun ShowMessages(
 	val unreadTad = remember {
 		room.lastMsgRead.value
 	}
-
+	var displayingLoading by remember {
+		mutableStateOf(MessagesLoadingDirection.NONE)
+	}
+//	var prevLazyMessage by remember {
+//		mutableStateOf(null as Message?)
+//	}
+	var prevLazyMessageID = remember {
+		null as Int?
+	}
 	println("загружается ShowMessages")
 //	val lazyListState = rememberForeverLazyListState(Screen.RoomMessages(room.roomID).routeWithArgs)
+
+
 	LazyColumn(
 		modifier = modifier,
 		state = room.lazyListState,
@@ -331,14 +334,12 @@ fun ShowMessages(
 		) { indexInColumn, lazyMessage ->
 
 			Cache.Data.messages[lazyMessage.messageID]?.let { msg ->
-
-
 				// bottom padding
 				Spacer(Modifier.height(3.dp))
+
 				Row(
 					modifier = Modifier
-						.padding(horizontal = 8.dp)
-					,
+						.padding(horizontal = 8.dp),
 					verticalAlignment = Alignment.Bottom,
 					horizontalArrangement = Arrangement.Start
 				) {
@@ -363,6 +364,7 @@ fun ShowMessages(
 						MessageBody(
 							msg = msg,
 							backend = backend,
+							room = room,
 							modifier = Modifier.combinedClickable(
 								onClick = {
 									if (room.markedMessage.messageID.value == lazyMessage.messageID)
@@ -388,23 +390,32 @@ fun ShowMessages(
 
 					}
 
-				}
+				} // здесь потому что LazyColumn.reverseLayout = true:
+
 				// top padding
 				Spacer(Modifier.height(if (lazyMessage.addTopPadding) 10.dp else 3.dp))
-
-				// здесь потому что LazyColumn.reverseLayout = true
 				// different data tag
 				if (lazyMessage.displayingData) DataTag(msg.createdAt)
 				// unread tag
-				if (displayingUnreadTag(room, unreadTad,indexInColumn)) UnreadTag()
-
+				if (displayingUnreadTag(room, unreadTad, indexInColumn)) UnreadTag()
 			}
 		}
 
 	}
+	// if loading in bottom messages
+	if (displayingLoading != MessagesLoadingDirection.NONE)
+		Box(
+			modifier = Modifier.fillMaxSize(),
+			contentAlignment =
+			if (displayingLoading == MessagesLoadingDirection.TOP) Alignment.TopCenter
+			else Alignment.BottomCenter
+		) {
+			Loading()
+		}
+
 	// Кнопка го даун
 	Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
-		GoToDown(room = room, scope = coroutineScope)
+		GoToDown(backend, room, coroutineScope)
 	}
 
 	LaunchedEffect(room.lazyListState) {
@@ -412,9 +423,15 @@ fun ShowMessages(
 		// фокусироваться на последнем на новом сообщении если прошлое было видно на экране.
 		launch {
 			snapshotFlow { room.lazyListState.layoutInfo.totalItemsCount }
-				.map { room.lazyListState.firstVisibleItemIndex == 1 }
+				.map {
+					println("room.lazyListState.firstVisibleItemIndex == 1 = ${room.lazyListState.firstVisibleItemIndex <= 1} (${room.lazyListState.firstVisibleItemIndex})")
+					room.lazyListState.layoutInfo.visibleItemsInfo.isNotEmpty() && room.lazyListState.firstVisibleItemIndex <= 1 && Cache.Data.messages[room.lazyListState.layoutInfo.visibleItemsInfo.first().key as Int]?.prev == null
+				}
 				.filter { it }
-				.collect { room.lazyListState.animateScrollToItem(0) }
+				.collect {
+					delay(50L)
+					room.scrollToIndex(backend,0, animated = true)
+				}
 		}
 
 		// показывать скрелку вниз для скорла к последним сообщениям
@@ -433,14 +450,21 @@ fun ShowMessages(
 		launch {
 			snapshotFlow { room.lazyListState.layoutInfo.visibleItemsInfo }
 				.map {
-					room.lastMsgID != null && room.lastMsgRead.value == null || it.first().key as Int > room.lastMsgRead.value!!
+//					Сюда можно было бы добавить такую проверку:
+//					room.messagesLazyOrder[it.first().index].employeeID != Cache.Me.ID &&
+//					Но что если я заnullил в бд его прочитанное,  тогда клиет не будет совсем реагировать на свои сообщеня, а лучше пусть реагирует
+//					Можно добавить что если если это свое сообщение и оно последнее(prev == null)
+//					То тогда не надо читать..
+					room.lastMsgID != null && (room.lastMsgRead.value == null || it.first().key as Int > room.lastMsgRead.value!!)
 				}
 				.filter { it }
 				.collect {
 					backend.readMessage(
 						room.roomID,
 						room.lazyListState.layoutInfo.visibleItemsInfo.first().key as Int
-					)
+					).let {
+						if (it != null) println(it)
+					}
 				}
 		}
 
@@ -449,33 +473,32 @@ fun ShowMessages(
 			snapshotFlow { room.lazyListState.layoutInfo.visibleItemsInfo }
 				.map { items ->
 					when {
-						items.last().key == room.messagesLazyOrder.last().messageID -> 1 // при скроле вверх
-						items.first().key == room.messagesLazyOrder.first().messageID -> 2 // при скроле вниз
+//						items.last().key == room.messagesLazyOrder.last().messageID -> 1 // при скроле вверх
+//						items.first().key == room.messagesLazyOrder.first().messageID -> 2 // при скроле вниз
+
+						Cache.Data.messages[items.last().key]?.prev != null
+								&& !Cache.Data.messages.containsKey(Cache.Data.messages[items.last().key]?.prev)
+						-> Pair(items.last().key as Int, MsgCreated.BEFORE) // при скроле вверх
+
+						Cache.Data.messages[items.first().key]?.next != null
+								&& !Cache.Data.messages.containsKey(Cache.Data.messages[items.first().key]?.next)
+						-> Pair(items.first().key as Int, MsgCreated.AFTER) // при скроле вниз
+
 						else -> {
-							0
+							null
 						}
 					}
 				}
-				.filter { it > 0 }
+				.filter { it != null }
 				.collect {
-					when (it) {
-						1 -> {
-							if (Cache.Data.messages[room.messagesLazyOrder.last().messageID]!!.prev != null)
-								backend.orderRoomMessages(
-									roomID = room.roomID,
-									startMsg = room.messagesLazyOrder.last().messageID,
-									created = MsgCreated.BEFORE,
-								)
-						}
-						2 -> {
-							if (Cache.Data.messages[room.messagesLazyOrder.first().messageID]!!.next != null)
-								backend.orderRoomMessages(
-									roomID = room.roomID,
-									startMsg = room.messagesLazyOrder.first().messageID,
-									created = MsgCreated.AFTER,
-								)
-						}
-					}
+					delay(5L) // иначе при отправке своего сообщения будет отображаться загрузка
+					displayingLoading = MessagesLoadingDirection.TOP
+					backend.orderRoomMessages(
+						roomID = room.roomID,
+						startMsg = it!!.first,
+						created = it.second,
+					)
+					displayingLoading = MessagesLoadingDirection.NONE
 				}
 		}
 
@@ -488,11 +511,10 @@ fun UnreadTag(modifier: Modifier = Modifier) {
 		modifier = modifier
 			.fillMaxWidth()
 			.padding(vertical = 7.dp)
-			.background(ProfileSectionBackgroundCC)
-		,
+			.background(ProfileSectionBackgroundCC),
 		contentAlignment = Alignment.Center
 	) {
-		Text("Непрочитанные",Modifier.padding(2.dp), color = MainTextCC)
+		Text("Непрочитанные", Modifier.padding(2.dp), color = MainTextCC)
 	}
 }
 
@@ -516,6 +538,7 @@ fun DataTag(epoch: Long, modifier: Modifier = Modifier) {
 fun MessageBody(
 	msg: Message,
 	backend: Backend,
+	room: Room,
 	modifier: Modifier = Modifier,
 	backgroundColor: Color = MessageBackgroundCC,
 	displayAuthor: Boolean = true,
@@ -549,7 +572,12 @@ fun MessageBody(
 						)
 					}
 				if (msg.targetID != null && Cache.Data.messages[msg.targetID] != null)
-					ReplayedMessage(Cache.Data.messages[msg.targetID]!!)
+					ReplayedMessage(
+						msg = Cache.Data.messages[msg.targetID]!!,
+						modifier = Modifier.clickable {
+							MainScope().launch { room.scrollToMsg(backend, msg.targetID) }
+						}
+					)
 				TextMessageBody(msg.body)
 				TextMessageData("(${msg.msgID})")
 			}
