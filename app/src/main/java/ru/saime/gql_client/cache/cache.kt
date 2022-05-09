@@ -21,6 +21,7 @@ object Cache {
 
 	object Me {
 		var ID: Int = 0
+		var NotificationsEnable by mutableStateOf(false)
 	}
 
 	object Orders {

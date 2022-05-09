@@ -17,6 +17,7 @@ import ru.saime.gql_client.MainActivity
 import ru.saime.gql_client.MustLengthSessionKey
 import ru.saime.gql_client.PrefRefreshTokenKey
 import ru.saime.gql_client.cache.Cache
+import ru.saime.gql_client.utils.NotificationHelper
 import ru.saime.gql_client.utils.VibrateHelper
 import ru.saime.gql_client.utils.getRandomString
 import ru.saime.gql_client.utils.triggerRebirth
@@ -27,12 +28,16 @@ class Backend(
 	val mainNavController: NavHostController,
 	val pref: SharedPreferences
 ) {
-	val vibrateHelper = VibrateHelper(activity.baseContext)
+
 	object States {
 		var SendingMessage: Boolean = false
 		var ReadingMessage: Boolean = false
 		var WebSocketConnectionEstablished: Boolean = false
 	}
+
+	data class EventFlow(
+		val newMessage: MutableSharedFlow<SubscribeSubscription.OnNewMessage>
+	)
 
 	var accessToken: String = ""
 	var refreshToken: String = ""
@@ -46,30 +51,24 @@ class Backend(
 		.wsProtocol(GraphQLWsProtocol.Factory())
 		.wsProtocol(
 			SubscriptionWsProtocol.Factory(
-				connectionPayload = {
-					mapOf(
-						AuthorizationHeader to accessToken
-					)
-				}
+				connectionPayload = { mapOf(AuthorizationHeader to accessToken) }
 			))
 		.build()
 
-	fun refreshTokenLoaded() = refreshToken != ""
+	val vibrateHelper = VibrateHelper(activity.baseContext)
+	val notificationHelper = NotificationHelper(activity)
 
-//	val clearEventFlow: Flow<EventResult> =
-
-	data class EventFlow(
-		val newMessage: MutableSharedFlow<SubscribeSubscription.OnNewMessage>
-	)
 	val eventFlow: EventFlow = EventFlow(
 		newMessage = MutableSharedFlow()
 	)
+
 	init {
 		refreshToken = pref.getString(PrefRefreshTokenKey, "") ?: ""
 
 	}
-}
 
+	fun refreshTokenLoaded() = refreshToken != ""
+}
 
 
 fun Backend.pleaseSubscribe() {
@@ -78,11 +77,9 @@ fun Backend.pleaseSubscribe() {
 }
 
 
-
-
 fun Backend.logout() {
 	pref.edit(true) {
-		this.remove(PrefRefreshTokenKey) // удалить refresh token
+		remove(PrefRefreshTokenKey) // удалить refresh token
 	}
 	// отменить подписку
 	subscriptionJob?.cancel()
@@ -99,7 +96,6 @@ fun Backend.logout() {
 	}
 	Cache.Orders.roomOrder = emptyList()
 	Cache.LoadedData.clear()
-
 
 	triggerRebirth(activity.applicationContext) // перезапуск приложения
 }

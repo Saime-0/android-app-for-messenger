@@ -3,10 +3,12 @@ package ru.saime.gql_client
 import java.text.SimpleDateFormat
 import java.util.*
 
-const val version = "22.129"
+const val version = "22.130"
 
 const val PrefTableName = "user-table"
 const val PrefRefreshTokenKey = "rt"
+const val PrefNotificationEnable = "ne"
+
 const val AuthorizationHeader = "Authorization"
 
 const val CountOfOrderedRooms = 20

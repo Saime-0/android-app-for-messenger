@@ -3,9 +3,12 @@ package ru.saime.gql_client.widgets
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.ScaffoldState
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -119,8 +122,12 @@ fun MenuProfile(backend: Backend, modifier: Modifier=Modifier) {
 				TextLargeProfile(text = me.firstName, color = Color.White)
 			}
 			Spacer(modifier = Modifier.weight(1f))
-			IconButton(onClick = { /*TODO*/ }) {
-				Icon(Icons.Default.Notifications, null, tint = Color.White)
+			IconButton(onClick = { Cache.Me.NotificationsEnable = !Cache.Me.NotificationsEnable }) {
+				Icon(
+					Icons.Default.Notifications,
+					null,
+					tint = if (Cache.Me.NotificationsEnable) EnableNotifyCC else DisableNotifyCC
+				)
 			}
 		}
 		Divider2CC(Modifier.padding(horizontal = 20.dp), MessageMeBackgroundCC)

@@ -1,5 +1,6 @@
 package ru.saime.gql_client.backend
 
+import androidx.lifecycle.Lifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.retryWhen
 import pkg.SubscribeSubscription
@@ -27,7 +28,7 @@ suspend fun Backend.subscribe() {
 				event.onNewMessage?.let { msg ->
 					// * а ничего не сломается если переместить обратно под изменение стейта комнат или сломаейтся хм
 					// добавляю новое сообщение в кэш
-					Cache.fillOnNewMessage(this, it.data!!.subscribe!!.body.onNewMessage!!)
+					Cache.fillOnNewMessage(this, msg)
 
 					// меняю стейт комнаты
 					Cache.Data.rooms[msg.roomID]?.let { room ->
@@ -41,7 +42,11 @@ suspend fun Backend.subscribe() {
 					}
 
 					// дальше
-					eventFlow.newMessage.emit(it.data!!.subscribe!!.body.onNewMessage!!)
+					eventFlow.newMessage.emit(msg)
+
+					println(activity.lifecycle.currentState)
+					if (Cache.Me.NotificationsEnable && msg.employeeID != Cache.Me.ID && activity.lifecycle.currentState != Lifecycle.State.RESUMED)
+						notificationHelper.newMessage(msg)
 				}
 
 				// Когда удаляется комната

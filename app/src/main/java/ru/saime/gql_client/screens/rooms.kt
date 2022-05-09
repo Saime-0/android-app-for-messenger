@@ -165,9 +165,7 @@ fun RoomCard(
 			}
 		else "Объявление"
 
-
-
-
+	
 	Box(
 		modifier = modifier
 			.fillMaxWidth()

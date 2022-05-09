@@ -49,3 +49,7 @@ val OnlineIndicatorCC = Color(0xFF59C75E)
 val LoginButtonBackgroundCC = Color(0xFF272727)
 
 val RoomLastMessageCC = Color(0xFFA7A7A7)
+
+
+val EnableNotifyCC = Color.White
+val DisableNotifyCC = MessageMeBackgroundCC
