@@ -1,24 +1,14 @@
 package ru.saime.gql_client.widgets
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.rounded.ExitToApp
-import androidx.compose.material.icons.rounded.List
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.sharp.ExitToApp
-import androidx.compose.material.icons.sharp.List
-import androidx.compose.material.icons.sharp.Search
-import androidx.compose.material.icons.sharp.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -30,7 +20,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -116,6 +105,7 @@ fun MenuProfile(backend: Backend, modifier: Modifier=Modifier) {
 				horizontalAlignment = Alignment.CenterHorizontally,
 				verticalArrangement = Arrangement.spacedBy(10.dp),
 				modifier = Modifier
+					.padding(top=20.dp)
 					.clickable {
 						backend.mainNavController.navigate(Screen.Profile(me.empID).routeWithArgs)
 					}
@@ -133,7 +123,7 @@ fun MenuProfile(backend: Backend, modifier: Modifier=Modifier) {
 				Icon(Icons.Default.Notifications, null, tint = Color.White)
 			}
 		}
-		DividerV2CC(Modifier.padding(horizontal = 20.dp), MessageMeBackgroundCC)
+		Divider2CC(Modifier.padding(horizontal = 20.dp), MessageMeBackgroundCC)
 		// menu items
 		Column(
 			Modifier

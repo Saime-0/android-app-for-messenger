@@ -1,44 +1,45 @@
 package ru.saime.gql_client.screens
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.accompanist.insets.navigationBarsWithImePadding
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import pkg.type.MsgCreated
 import pkg.type.RoomType
 import ru.saime.gql_client.*
-import ru.saime.gql_client.R
 import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.backend.orderRoomMessages
 import ru.saime.gql_client.backend.readMessage
 import ru.saime.gql_client.backend.sendMessage
-import ru.saime.gql_client.cache.*
-import ru.saime.gql_client.navigation.Screen
-import ru.saime.gql_client.utils.*
-import ru.saime.gql_client.widgets.Avatar
-import ru.saime.gql_client.widgets.EmptyScreen
+import ru.saime.gql_client.cache.Cache
+import ru.saime.gql_client.cache.Room
+import ru.saime.gql_client.utils.ScreenStatus
+import ru.saime.gql_client.utils.equal
+import ru.saime.gql_client.utils.scrollToIndex
+import ru.saime.gql_client.utils.set
+import ru.saime.gql_client.widgets.*
 
 suspend fun sendMessage(
 	backend: Backend,
@@ -92,7 +93,8 @@ fun RoomMessages(backend: Backend, room: Room) {
 					Row(
 						verticalAlignment = Alignment.CenterVertically
 					) {
-						Avatar(Modifier
+						Avatar(
+							Modifier
 								.padding(end = 17.dp, top = 4.dp, bottom = 4.dp)
 								.size(40.dp)
 								.clip(CircleShape)
@@ -118,7 +120,7 @@ fun RoomMessages(backend: Backend, room: Room) {
 
 		SideEffect { // внутри скаффолд потому что переклдючение статуса на OK отрабатывает перед скаффолд, я так думаю...
 			println("echo RoomMessages.SideEffect")
-			if (room.lastMsgID == null) {
+			if (room.lastMsgID.value == null) {
 				screenStatus.set(ScreenStatus.EMPTY)
 			} else if (room.messagesLazyOrder.isEmpty()) {
 				if (screenStatus.equal(ScreenStatus.NONE))
@@ -155,7 +157,7 @@ fun RoomMessages(backend: Backend, room: Room) {
 
 											}
 										}
-									else if (room.lastMsgID != null && room.lazyListState.layoutInfo.totalItemsCount > 1)
+									else if (room.lastMsgID.value != null && room.lazyListState.layoutInfo.totalItemsCount > 1)
 										MainScope().launch {
 											delay(20L)
 											room.scrollToIndex(backend, room.lazyListState.layoutInfo.totalItemsCount - 1)
@@ -222,72 +224,6 @@ fun RoomMessages(backend: Backend, room: Room) {
 	}
 }
 
-@Composable
-fun GoToDown(
-	backend: Backend,
-	room: Room,
-	scope: CoroutineScope,
-	modifier: Modifier = Modifier
-) {
-	if (room.displayingGoDown.value)
-		FloatingActionButton(
-			content = {
-				Icon(
-					Icons.Default.KeyboardArrowDown,
-					contentDescription = null,
-					tint = ProfileDimCC
-				)
-			},
-			modifier = modifier
-				.size(61.dp)
-				.padding(10.dp),
-			onClick = { scope.launch { room.scrollToMsg(backend, room.lastMsgID!!) } },
-			backgroundColor = MessageBackgroundCC,
-			contentColor = Color.White,
-		)
-}
-
-
-@Composable
-fun MarkedMessage(backend: Backend, msgID: Int?) {
-	if (msgID != null) {
-		Cache.Data.messages[msgID]?.let { msg ->
-			Cache.Data.rooms[msg.roomID]?.let { room ->
-				Row(
-					modifier = Modifier
-						.background(DefaultTripleBarBackgroundCC)
-						.padding(horizontal = 40.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					ReplayedMessage(
-						modifier = Modifier
-							.weight(1f)
-							.clickable {
-								MainScope().launch {
-									room.scrollToIndex(backend, room.markedMessage.indexInColumn)
-								}
-							},
-						msg = msg
-					)
-					IconButton(onClick = { room.markedMessage.clear() }) {
-						Icon(
-							Icons.Filled.Close,
-							null,
-							tint = MainTextCC
-						)
-					}
-				}
-				Box( // нижняя граница
-					modifier = Modifier
-						.fillMaxWidth()
-						.height(2.dp)
-						.background(BackgroundCC)
-				)
-			}
-		}
-	}
-}
-
 fun displayingUnreadTag(room: Room, unreadMsgID: Int?, indexOfLazyMessage: Int): Boolean {
 	return indexOfLazyMessage != 0
 			&& indexOfLazyMessage + 1 != room.messagesLazyOrder.size
@@ -305,17 +241,12 @@ fun ShowMessages(
 ) {
 	val coroutineScope = rememberCoroutineScope()
 	var unreadTad = remember {
-		room.lastMsgRead.value
+		mutableStateOf(room.lastMsgRead.value)
 	}
 	var displayingLoading by remember {
 		mutableStateOf(MessagesLoadingDirection.NONE)
 	}
-//	var prevLazyMessage by remember {
-//		mutableStateOf(null as Message?)
-//	}
-	var prevLazyMessageID = remember {
-		null as Int?
-	}
+
 	println("загружается ShowMessages")
 //	val lazyListState = rememberForeverLazyListState(Screen.RoomMessages(room.roomID).routeWithArgs)
 
@@ -395,7 +326,7 @@ fun ShowMessages(
 				// different data tag
 				if (lazyMessage.displayingData) DataTag(msg.createdAt)
 				// unread tag
-				if (displayingUnreadTag(room, unreadTad, indexInColumn)) UnreadTag()
+				if (displayingUnreadTag(room, unreadTad.value, indexInColumn)) UnreadTag()
 			}
 		}
 
@@ -420,15 +351,20 @@ fun ShowMessages(
 
 		// фокусироваться на последнем на новом сообщении если прошлое было видно на экране.
 		launch {
-			snapshotFlow { room.lazyListState.layoutInfo.totalItemsCount }
+			backend.eventFlow.newMessage
 				.map {
-					println("room.lazyListState.firstVisibleItemIndex == 1 = ${room.lazyListState.firstVisibleItemIndex <= 1} (${room.lazyListState.firstVisibleItemIndex})")
-					room.lazyListState.layoutInfo.visibleItemsInfo.isNotEmpty() && room.lazyListState.firstVisibleItemIndex <= 1 && Cache.Data.messages[room.lazyListState.layoutInfo.visibleItemsInfo.first().key as Int]?.prev == null
+					println("room.lazyListState.layoutInfo.visibleItemsInfo.first().key - ${room.lazyListState.layoutInfo.visibleItemsInfo.first().key}")
+					room.lazyListState.layoutInfo.visibleItemsInfo.isNotEmpty()
+//							&& room.lazyListState.firstVisibleItemIndex < 1
+							&& room.lazyListState.layoutInfo.visibleItemsInfo.first().key == it.prev
+//							Cache.Data.messages[]?.next == room.messagesLazyOrder.last().messageID
 				}
 				.filter { it }
 				.collect {
+
 					delay(50L)
 					room.scrollToIndex(backend,0, animated = true)
+					unreadTad.value = room.lastMsgID.value
 				}
 		}
 
@@ -453,7 +389,7 @@ fun ShowMessages(
 //					Но что если я заnullил в бд его прочитанное,  тогда клиет не будет совсем реагировать на свои сообщеня, а лучше пусть реагирует
 //					Можно добавить что если если это свое сообщение и оно последнее(prev == null)
 //					То тогда не надо читать..
-					it.isNotEmpty() && room.lastMsgID != null && (room.lastMsgRead.value == null || it.first().key as Int > room.lastMsgRead.value!!)
+					it.isNotEmpty() && room.lastMsgID.value != null && (room.lastMsgRead.value == null || it.first().key as Int > room.lastMsgRead.value!!)
 				}
 				.filter { it }
 				.collect {
@@ -531,165 +467,4 @@ fun DataTag(epoch: Long, modifier: Modifier = Modifier) {
 			fontSize = 13.sp
 		)
 	}
-}
-
-@Composable
-fun MessageBody(
-	msg: Message,
-	backend: Backend,
-	room: Room,
-	modifier: Modifier = Modifier,
-	backgroundColor: Color = MessageBackgroundCC,
-	displayAuthor: Boolean = true,
-//	addTopPadding: Boolean = false,
-) {
-
-	Card(
-		modifier = modifier,
-		shape = RoundedCornerShape(18.dp),
-		backgroundColor = backgroundColor,
-	) {
-		Row(
-			modifier = Modifier.padding(vertical = 4.dp, horizontal = 11.dp),
-			verticalAlignment = Alignment.Bottom,
-			horizontalArrangement = Arrangement.spacedBy(5.dp)
-		) {
-			Column(
-				modifier = Modifier
-					.widthIn(0.dp, 200.dp)
-					.padding(3.dp),
-				verticalArrangement = Arrangement.spacedBy(1.dp)
-			) {
-				if (displayAuthor)
-					Cache.Data.employees[msg.empID]?.let { emp ->
-						TextMessageAuthor(
-							emp.firstName + " " + emp.lastName,
-							modifier = Modifier
-								.clickable {
-									backend.mainNavController.navigate(Screen.Profile(emp.empID).routeWithArgs)
-								}
-						)
-					}
-				if (msg.targetID != null && Cache.Data.messages[msg.targetID] != null)
-					ReplayedMessage(
-						msg = Cache.Data.messages[msg.targetID]!!,
-						modifier = Modifier.clickable {
-							MainScope().launch { room.scrollToMsg(backend, msg.targetID) }
-						}
-					)
-				TextMessageBody(msg.body)
-				TextMessageData("(${msg.msgID})")
-			}
-			TextMessageData(DateFormats.messageDate(msg.createdAt))
-		}
-	}
-}
-
-@Composable
-fun ReplayedMessage(msg: Message, modifier: Modifier = Modifier) {
-	Row(
-		modifier = modifier
-			.padding(top = 1.dp, bottom = 1.dp, start = 4.dp),
-		horizontalArrangement = Arrangement.spacedBy(6.dp),
-		verticalAlignment = Alignment.CenterVertically
-	) {
-		Box(
-			Modifier
-				.width(2.dp)
-				.height(38.dp)
-				.background(MessageReplyLineCC)
-		)
-		Column {
-			TextMessageAuthor(
-				Cache.Data.employees[msg.empID]?.let {
-					it.firstName + " " + it.lastName
-				}.toString()
-			)
-			TextMessageBody(
-				msg.body,
-				maxLines = 1,
-				overflow = TextOverflow.Ellipsis,
-			)
-		}
-	}
-}
-
-@Composable
-fun MessageInput(room: Room, modifier: Modifier = Modifier) {
-	TextField(
-		value = room.currentInputMessageText.value,
-		onValueChange = { room.currentInputMessageText.value = it },
-		modifier = modifier
-			.width(250.dp)
-			.padding(bottom = 10.dp, top = 5.dp, start = 5.dp, end = 5.dp)
-			.navigationBarsWithImePadding(),
-		textStyle = TextStyle(
-			fontSize = 18.sp,
-			color = Color.White,
-		),
-		placeholder = { Text("Сообщение", color = MessageMeBackgroundCC, fontSize = 18.sp) },
-		singleLine = false,
-		maxLines = 3,
-		colors = TextFieldDefaults.textFieldColors(
-			backgroundColor = Color.Transparent,
-			cursorColor = SendingMessageIconCC,
-			focusedIndicatorColor = Color.Transparent,
-			unfocusedIndicatorColor = Color.Transparent,
-			errorIndicatorColor = Color.Red,
-		),
-
-		)
-
-}
-
-@Composable
-fun TextMessageAuthor(
-	text: String,
-	modifier: Modifier = Modifier,
-	color: Color = MessageAuthorCC,
-	fontSize: TextUnit = 14.sp
-) {
-	Text(
-		modifier = modifier,
-		text = text,
-		color = color,
-		fontSize = fontSize
-	)
-}
-
-@Composable
-fun TextMessageData(
-	text: String,
-	modifier: Modifier = Modifier,
-	color: Color = MessageDataCC,
-	fontSize: TextUnit = 11.sp,
-) {
-	Text(
-		text = text,
-		modifier = modifier,
-		color = color,
-		fontSize = fontSize
-	)
-}
-
-@Composable
-fun TextMessageBody(
-	text: String,
-	modifier: Modifier = Modifier,
-	color: Color = MessageTextCC,
-	overflow: TextOverflow = TextOverflow.Clip,
-	maxLines: Int = Int.MAX_VALUE,
-	onTextLayout: (TextLayoutResult) -> Unit = {},
-//	fontSize: TextUnit = 16.sp
-) {
-	Text(
-		text = text,
-		modifier = modifier,
-		color = color,
-		overflow = overflow,
-		maxLines = maxLines,
-		onTextLayout = onTextLayout,
-//		fontFamily = FontFamily.SansSerif,
-//		fontSize = fontSize
-	)
 }

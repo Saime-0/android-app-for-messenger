@@ -1,20 +1,18 @@
 package ru.saime.gql_client.screens
 
-import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
@@ -23,18 +21,14 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import ru.saime.gql_client.*
-import ru.saime.gql_client.R
 import ru.saime.gql_client.backend.Backend
+import ru.saime.gql_client.backend.logout
 import ru.saime.gql_client.backend.orderEmployeeProfile
-import ru.saime.gql_client.backend.orderMe
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.utils.ScreenStatus
-import ru.saime.gql_client.utils.equal
 import ru.saime.gql_client.utils.set
 import ru.saime.gql_client.widgets.Avatar
-import ru.saime.gql_client.widgets.DockSpacer
 import ru.saime.gql_client.widgets.EmptyScreen
-import ru.saime.gql_client.widgets.ScreenHorizontalPadding
 
 
 @Composable

@@ -1,12 +1,10 @@
 package ru.saime.gql_client.cache
 
-import android.provider.ContactsContract
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import pkg.type.RoomType
-import java.lang.Exception
 import java.util.*
 import kotlin.reflect.KProperty
 
@@ -25,14 +23,19 @@ object Cache {
 		var ID: Int = 0
 	}
 
+	object Orders {
+		var roomOrder by mutableStateOf(listOf<Int>())
+	}
+
 	object Data {
-		val rooms = mutableStateMapOf<Int, Room>()
+		val rooms = mutableMapOf<Int, Room>()
 		val employees = mutableMapOf<Int, Employee>()
 		val tags = mutableMapOf<Int, Tag>()
 		val messages = mutableMapOf<Int, Message>()
 
 	}
 }
+
 
 data class LazyMessage(
 	val messageID: Int,
@@ -65,7 +68,7 @@ data class Room(
 	val roomID: Int,
 	val name: String,
 	val view: RoomType,
-	var lastMsgID: Int?,
+	var lastMsgID: MutableState<Int?>,
 	val lastMsgRead: MutableState<Int?>,
 ) {
 	//	val messagesOrder = mutableListOf<OrderPair>()
@@ -73,7 +76,6 @@ data class Room(
 //	var messagesLazyOrder by mutableStateOf(mapOf<Int, LazyMessage>())
 	var messagesLazyOrder = mutableStateListOf<LazyMessage>()
 //	val orderCopy = mutableListOf<LazyMessage>()
-
 	//	States
 	val currentInputMessageText = mutableStateOf("")
 	val lazyListState = LazyListState()
@@ -101,7 +103,9 @@ data class Message(
 	val createdAt: Long,
 	var prev: Int?,
 	var next: Int?,
-)
+) {
+	operator fun getValue(nothing: Nothing?, property: KProperty<*>): Message = this
+}
 
 data class Tag(
 	val tagID: Int,

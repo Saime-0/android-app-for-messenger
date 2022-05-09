@@ -1,7 +1,9 @@
 package ru.saime.gql_client.widgets
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.Divider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,7 +22,7 @@ fun DividerCC(
 	)
 }
 @Composable
-fun DividerV2CC(
+fun Divider2CC(
 	modifier: Modifier = Modifier,
 	color: Color = DividerDarkCC
 ) {

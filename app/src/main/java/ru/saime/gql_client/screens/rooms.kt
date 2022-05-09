@@ -1,6 +1,5 @@
 package ru.saime.gql_client.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,20 +14,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
-import pkg.type.EventSubjectAction
-import pkg.type.EventType
-import pkg.type.MsgCreated
+import kotlinx.coroutines.launch
 import ru.saime.gql_client.*
 import ru.saime.gql_client.backend.Backend
-import ru.saime.gql_client.backend.editSubscribeList
 import ru.saime.gql_client.backend.orderMeRooms
-import ru.saime.gql_client.backend.orderRoomMessages
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.cache.Room
 import ru.saime.gql_client.navigation.Screen
@@ -72,21 +69,23 @@ fun Rooms(
 		},
 		backgroundColor = BackgroundCC,
 	) {
-		SideEffect {
-			if (Cache.Data.rooms.isEmpty() && screenStatus.equal(ScreenStatus.NONE))
-				MainScope().launch {
-					screenStatus.set(ScreenStatus.LOADING)
-					backend.orderMeRooms(0).let { err ->
-						if (err != null) {
-							errMsg = err
-							screenStatus.set(ScreenStatus.ERROR)
-						} else {
-							screenStatus.set(ScreenStatus.OK)
-						}
+		LaunchedEffect(Unit) {
+			if (Cache.Orders.roomOrder.isEmpty() && screenStatus.equal(ScreenStatus.NONE)) {
+				screenStatus.set(ScreenStatus.LOADING)
+				backend.orderMeRooms(0).let { err ->
+					if (err != null) {
+						errMsg = err
+						screenStatus.set(ScreenStatus.ERROR)
+					} else {
+						screenStatus.set(ScreenStatus.OK)
 					}
 				}
-			else
+
+			} else
 				screenStatus.set(ScreenStatus.OK)
+		}
+		SideEffect {
+			println(screenStatus.value)
 		}
 
 		when (screenStatus.value) {
@@ -107,9 +106,10 @@ fun ShowRooms(
 	backend: Backend,
 ) {
 	val lazyListState = rememberForeverLazyListState(Screen.Rooms.routeRef)
-	val sortedRoomList = Cache.Data.rooms.values.toList().sortedByDescending { it.pos }
+//	val sortedRoomList = Cache.Data.rooms.values.toList().sortedByDescending { it.pos }
 
 	LaunchedEffect(lazyListState) {
+		// для подгрузки
 		launch(Dispatchers.IO) {
 			snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo }
 				.map { list ->
@@ -131,16 +131,19 @@ fun ShowRooms(
 	}
 	if (Cache.Data.rooms.isNotEmpty()) {
 		LazyColumn(
-			modifier = Modifier.fillMaxWidth(),
+//			modifier = Modifier.fillMaxWidth(),
 			state = lazyListState,
 		) {
 			itemsIndexed(
-				items = sortedRoomList,
-				key = { _, room -> room.roomID },
-			) { _, room ->
-				RoomCard(room, backend, Modifier.padding(top = 9.dp))
-			}
+				items = Cache.Orders.roomOrder,
+				key = { _, roomID -> roomID },
+			) { index, roomID ->
+				if (index == 0) Spacer(Modifier.height(10.dp))
 
+				RoomCard(Cache.Data.rooms[roomID]!!, backend, Modifier.padding(vertical = 8.dp))
+
+				if (index + 1 == Cache.Orders.roomOrder.size) Spacer(Modifier.height(30.dp))
+			}
 		}
 	}
 }
@@ -151,6 +154,20 @@ fun RoomCard(
 	backend: Backend,
 	modifier: Modifier = Modifier
 ) {
+	val lastMsg =
+		if (room.lastMsgID.value != null)
+			Cache.Data.messages[room.lastMsgID.value]
+		else null
+	val authorMsgName =
+		if (lastMsg?.empID != null)
+			Cache.Data.employees[lastMsg.empID]!!.let {
+				if (it.empID == Cache.Me.ID) "Вы" else it.firstName
+			}
+		else "Объявление"
+
+
+
+
 	Box(
 		modifier = modifier
 			.fillMaxWidth()
@@ -160,28 +177,84 @@ fun RoomCard(
 	)
 	{
 		Row(
-			verticalAlignment = Alignment.CenterVertically
+			modifier = Modifier
+				.padding(horizontal = 5.dp),
+			verticalAlignment = Alignment.CenterVertically,
 		) {
 //			Box(modifier = Modifier.width(8.dp))
-			Avatar(Modifier
-					.padding(horizontal = 12.dp, vertical = 2.dp)
+			Avatar(
+				Modifier
+					.padding(horizontal = 18.dp, vertical = 2.dp)
 					.size(50.dp)
 					.clip(CircleShape)
 			)
-			Column(modifier = Modifier.fillMaxWidth()) {
-				Text(
-					text = "(id:${room.roomID}) ${room.name}",
-					color = MainTextCC
-				)
-				Text(
-					text = room.view.name,
-					color = MainTextCC
-				)
-				Text(
-					text = room.lastMsgID.toString(),
-					color = MainTextCC
-				)
+			Column(
+				modifier = Modifier
+					.padding(end = 15.dp)
+					.fillMaxWidth(),
+//				verticalArrangement = Arrangement.spacedBy(5.dp)
+			) {
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(10.dp)
+				) {
+					TextRoomName(room.name, Modifier.weight(1f))
+					if (lastMsg != null)
+						TextMessageData(DateFormats.messageDate(lastMsg!!.createdAt))
+				}
+				if (lastMsg != null) {
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(10.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						TextMessageAuthor("$authorMsgName:", color = ProfileDimCC, fontSize = 17.sp)
+						TextMessageBody(
+							lastMsg!!.body,
+							maxLines = 1,
+							overflow = TextOverflow.Ellipsis,
+							color = RoomLastMessageCC,
+							modifier = Modifier.weight(1f),
+						)
+						if (room.lastMsgID.value != null && (room.lastMsgRead.value == null || room.lastMsgRead.value!! < room.lastMsgID.value!!))
+							NewMessageIndicator()
+					}
+				} else
+					TextMessageBody("<Пусто>", color = RoomLastMessageCC)
+//				Text(
+//					text = room.lastMsgID.value.toString(),
+//					color = MainTextCC
+//				)
+//				TextMessageData("${room.view.name} (${room.roomID})", Modifier.align(Alignment.End)) // id
 			}
 		}
 	}
+}
+
+@Composable
+fun NewMessageIndicator() {
+	Box(
+		Modifier
+			.size(10.dp)
+			.clip(CircleShape)
+			.background(Color.White)
+	)
+}
+
+
+@Composable
+fun TextRoomName(
+	text: String,
+	modifier: Modifier = Modifier,
+	color: Color = Color.White,
+	fontSize: TextUnit = 18.sp
+) {
+	Text(
+		text = text,
+		modifier = modifier,
+		color = color,
+		fontFamily = FontFamily.SansSerif,
+		fontSize = fontSize,
+		maxLines = 1,
+		overflow = TextOverflow.Ellipsis,
+	)
 }

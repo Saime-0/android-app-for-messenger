@@ -6,6 +6,7 @@ import pkg.*
 import pkg.type.MsgCreated
 import ru.saime.gql_client.AuthorizationHeader
 import ru.saime.gql_client.CountOfOrderedMessages
+import ru.saime.gql_client.CountOfOrderedRooms
 import ru.saime.gql_client.cache.*
 
 suspend fun Backend.orderMe(): String? {
@@ -73,12 +74,8 @@ suspend fun Backend.orderEmployeeProfile(empID: Int): String? {
 
 suspend fun Backend.orderMeRooms(
 	offset: Int,
-	limit: Int = 20,
+	limit: Int = CountOfOrderedRooms,
 ): String? {
-//	if (Cache.LoadedData.containsKey(LoadedDataType.RoomList)) {
-//		println("RoomList уже был запрошен")
-//		return null
-//	}
 	println("попытка запросить RoomList")
 
 	apolloClient

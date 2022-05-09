@@ -7,16 +7,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pkg.ProfileQuery
 import pkg.SubscribeSubscription
-import pkg.fragment.*
+import pkg.fragment.FullEmployee
+import pkg.fragment.FullTag
+import pkg.fragment.MessagesForRoom
+import pkg.fragment.RoomsWithoutMembers
 import pkg.type.EventSubjectAction
 import pkg.type.EventType
+import pkg.type.MsgCreated
 import pkg.type.RoomType
 import ru.saime.gql_client.MessageBackgroundCC
 import ru.saime.gql_client.MessageMeBackgroundCC
-import ru.saime.gql_client.backend.Backend
-import ru.saime.gql_client.backend.editSubscribeList
-import ru.saime.gql_client.backend.orderEmployeeProfile
-import ru.saime.gql_client.backend.findRoomMessage
+import ru.saime.gql_client.backend.*
 import java.util.*
 
 
@@ -43,17 +44,25 @@ fun Cache.fillEmployee(data: FullEmployee) {
 
 suspend fun Cache.fillRooms(backend: Backend, data: RoomsWithoutMembers) { // todo
 	println("начинаю заполнять комнаты")
-	for (room in data.rooms) {
-		Cache.Data.rooms[room.roomWithoutMembers.roomID] = Room(
-			pos = room.roomWithoutMembers.pos,
-			roomID = room.roomWithoutMembers.roomID,
-			name = room.roomWithoutMembers.name,
-			view = room.roomWithoutMembers.view,
-			lastMsgID = room.roomWithoutMembers.lastMessageID,
-			lastMsgRead = mutableStateOf(room.roomWithoutMembers.lastMessageRead),
-		)
-
+	for (room1 in data.rooms) {
+		 Room(
+			pos = room1.roomWithoutMembers.pos,
+			roomID = room1.roomWithoutMembers.roomID,
+			name = room1.roomWithoutMembers.name,
+			view = room1.roomWithoutMembers.view,
+			lastMsgID = mutableStateOf(room1.roomWithoutMembers.lastMessageID),
+			lastMsgRead = mutableStateOf(room1.roomWithoutMembers.lastMessageRead),
+		).let { room ->
+			Cache.Data.rooms[room.roomID] = room
+			if (room.lastMsgID.value != null)
+				backend.orderRoomMessages(room.roomID, MsgCreated.BEFORE, room.lastMsgID.value!!, 1)
+		}
 	}
+	Cache.Orders.roomOrder = Cache.Data.rooms.values
+		.map { Pair(it.roomID, it.pos) }
+		.sortedByDescending { it.second }
+		.map { it.first }
+
 	backend.editSubscribeList(
 		action = EventSubjectAction.ADD,
 		listenEvents = listOf(EventType.all),
@@ -76,15 +85,18 @@ fun Cache.fillTag(data: FullTag) {
 	)
 }
 
-suspend fun Cache.fillOnNewMessage(backend: Backend, msg: SubscribeSubscription.OnNewMessage) {
+suspend fun Cache.fillOnNewMessage(
+	backend: Backend,
+	newMessage: SubscribeSubscription.OnNewMessage
+) {
 	Message(
-		roomID = msg.roomID, // todo: order if not exists... why?
-		msgID = msg.msgID,
-		empID = msg.employeeID,
-		targetID = msg.targetMsgID,
-		body = msg.body,
-		createdAt = msg.createdAt * 1000L,
-		prev = msg.prev,
+		roomID = newMessage.roomID, // todo: order if not exists... why?
+		msgID = newMessage.msgID,
+		empID = newMessage.employeeID,
+		targetID = newMessage.targetMsgID,
+		body = newMessage.body,
+		createdAt = newMessage.createdAt * 1000L,
+		prev = newMessage.prev,
 		next = null,
 	).let { msg ->
 		Cache.Data.messages[msg.msgID] = msg
@@ -122,7 +134,7 @@ suspend fun Cache.fillRoomMessages(backend: Backend, messages: MessagesForRoom) 
 				Cache.orderEmployeeMessageIfNotExists(backend, msgForRoom.employee?.empID)
 				MainScope().launch {
 					if (!room.messagesLazyOrder.map { it.messageID }
-							.contains(msgForRoom.msgID ))
+							.contains(msgForRoom.msgID))
 						room.addLazyMessage(msg)
 
 				}

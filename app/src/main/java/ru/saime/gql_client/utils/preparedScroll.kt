@@ -2,6 +2,7 @@ package ru.saime.gql_client.utils
 
 import kotlinx.coroutines.delay
 import pkg.type.MsgCreated
+import ru.saime.gql_client.CountOfOrderedMessagesOnPreload
 import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.backend.findRoomMessage
 import ru.saime.gql_client.backend.orderRoomMessages
@@ -18,10 +19,10 @@ suspend fun Room.scrollToIndex(
 		Cache.Data.messages[lazyMessage.messageID]?.let { msg ->
 
 			if (msg.next != null && !Cache.Data.messages.containsKey(msg.next))
-				backend.orderRoomMessages(roomID, MsgCreated.AFTER, msg.msgID, 10)
+				backend.orderRoomMessages(roomID, MsgCreated.AFTER, msg.msgID, CountOfOrderedMessagesOnPreload)
 
 			if (msg.prev != null && !Cache.Data.messages.containsKey(msg.prev))
-				backend.orderRoomMessages(roomID, MsgCreated.BEFORE, msg.msgID, 10)
+				backend.orderRoomMessages(roomID, MsgCreated.BEFORE, msg.msgID, CountOfOrderedMessagesOnPreload)
 
 			delay(50L)
 			messagesLazyOrder.map { it.messageID }.indexOf(msg.msgID).let { newIndex ->
