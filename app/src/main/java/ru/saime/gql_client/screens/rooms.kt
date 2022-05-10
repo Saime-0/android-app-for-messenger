@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -71,13 +70,6 @@ fun Rooms(
 		backgroundColor = BackgroundCC,
 	) {
 		LaunchedEffect(Unit) {
-			launch {
-				snapshotFlow { backend.activity.lifecycle.currentState }
-					.distinctUntilChanged()
-					.collect{
-						println("состояние изменилось -> $it")
-					}
-			}
 			if (Cache.Orders.roomOrder.isEmpty() && screenStatus.equal(ScreenStatus.NONE)) {
 				screenStatus.set(ScreenStatus.LOADING)
 				backend.orderMeRooms(0).let { err ->
@@ -206,7 +198,7 @@ fun RoomCard(
 				) {
 					TextRoomName(room.name, Modifier.weight(1f))
 					if (lastMsg != null)
-						TextMessageData(DateFormats.messageDate(lastMsg!!.createdAt))
+						TextMessageData(DateFormats.messageDate(lastMsg.createdAt))
 				}
 				if (lastMsg != null) {
 					Row(
@@ -215,7 +207,7 @@ fun RoomCard(
 					) {
 						TextMessageAuthor("$authorMsgName:", color = ProfileDimCC, fontSize = 17.sp)
 						TextMessageBody(
-							lastMsg!!.body,
+							lastMsg.body,
 							maxLines = 1,
 							overflow = TextOverflow.Ellipsis,
 							color = RoomLastMessageCC,
