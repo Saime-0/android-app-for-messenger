@@ -1,7 +1,6 @@
 package ru.saime.gql_client.backend
 
 import androidx.core.content.edit
-import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
 import pkg.*
 import pkg.type.EventSubjectAction
@@ -57,7 +56,7 @@ suspend fun Backend.loginByCredentials(
 			}
 			println("успешно залогинился, токены обновлены, $accessToken")
 			orderMe()
-			pleaseSubscribe()
+			startSubscriptionWorker()
 			null
 		} catch (ex: Exception) {
 			println(ex)
@@ -80,7 +79,7 @@ suspend fun Backend.refreshTokens(): String? {
 				putString(PrefRefreshTokenKey, refreshToken)
 			}
 			orderMe()
-			pleaseSubscribe()
+			startSubscriptionWorker()
 			null
 		} catch (ex: Exception) {
 			println(ex)

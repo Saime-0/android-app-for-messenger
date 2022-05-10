@@ -160,7 +160,7 @@ suspend fun Room.addLazyMessage(msg: Message) {
 		messagesLazyOrder.add(newMsg) //потом добавляю его в список
 		delay(30L)
 		messagesLazyOrder.sortByDescending { it.messageID } // сортирую список
-		println(messagesLazyOrder.map { it.messageID })
+//		println(messagesLazyOrder.map { it.messageID })
 		messagesLazyOrder.map { it.messageID }
 			.indexOf(newMsg.messageID)
 			.let { index -> // нахожу index объекта в отсортированном списке

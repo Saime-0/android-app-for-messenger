@@ -4,13 +4,12 @@ package ru.saime.gql_client.backend
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
+import androidx.work.WorkManager
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.network.ws.GraphQLWsProtocol
 import com.apollographql.apollo3.network.ws.SubscriptionWsProtocol
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.launch
 import pkg.SubscribeSubscription
 import ru.saime.gql_client.AuthorizationHeader
 import ru.saime.gql_client.MainActivity
@@ -32,7 +31,6 @@ class Backend(
 	object States {
 		var SendingMessage: Boolean = false
 		var ReadingMessage: Boolean = false
-		var WebSocketConnectionEstablished: Boolean = false
 	}
 
 	data class EventFlow(
@@ -57,6 +55,8 @@ class Backend(
 
 	val vibrateHelper = VibrateHelper(activity.baseContext)
 	val notificationHelper = NotificationHelper(activity)
+//	val powerManagerHelper = PowerManagerHelper(activity)
+
 
 	val eventFlow: EventFlow = EventFlow(
 		newMessage = MutableSharedFlow()
@@ -64,17 +64,16 @@ class Backend(
 
 	init {
 		refreshToken = pref.getString(PrefRefreshTokenKey, "") ?: ""
-
 	}
 
 	fun refreshTokenLoaded() = refreshToken != ""
 }
 
 
-fun Backend.pleaseSubscribe() {
-	if (subscriptionJob == null)
-		subscriptionJob = MainScope().launch { subscribe() }
-}
+//fun Backend.pleaseSubscribe() {
+//	if (subscriptionJob == null)
+//		subscriptionJob = CoroutineScope(Dispatchers.IO).launch { subscribe() }
+//}
 
 
 fun Backend.logout() {
@@ -82,8 +81,7 @@ fun Backend.logout() {
 		remove(PrefRefreshTokenKey) // удалить refresh token
 	}
 	// отменить подписку
-	subscriptionJob?.cancel()
-	subscriptionJob = null
+	WorkManager.getInstance(activity).cancelAllWorkByTag(subscription_task_tag)
 
 	Cache.Me.run {
 		ID = 0
