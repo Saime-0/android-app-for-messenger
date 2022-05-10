@@ -82,6 +82,8 @@ fun Backend.logout() {
 	}
 	// отменить подписку
 	WorkManager.getInstance(activity).cancelAllWorkByTag(subscription_task_tag)
+	// удалить все уведомленя
+	notificationHelper.manager.cancelAll()
 
 	Cache.Me.run {
 		ID = 0
