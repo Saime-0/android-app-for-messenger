@@ -168,6 +168,7 @@ fragment RoomWithoutMembers on Room {
     view
     lastMessageID
     lastMessageRead
+    notify
 }
 fragment RoomsWithoutMembers on Rooms {
     rooms {

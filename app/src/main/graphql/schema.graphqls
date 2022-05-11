@@ -235,6 +235,8 @@ type Mutation {
 
   sendMsg(input: CreateMessageInput!): SendMsgResult!
 
+  setNotify(roomID: ID!, value: Boolean!): SetNotifyResult!
+
   editListenEventCollection(sessionKey: String!, action: EventSubjectAction!, targetRooms: [ID!]!, listenEvents: [EventType!]!): EditListenEventCollectionResult!
 }
 
@@ -301,6 +303,8 @@ type Room {
 
   lastMessageID: ID
 
+  notify: Boolean!
+
   members: Members!
 }
 
@@ -317,6 +321,8 @@ type Rooms {
 union RoomsResult = AdvancedError|Rooms
 
 union SendMsgResult = AdvancedError|Successful
+
+union SetNotifyResult = AdvancedError|Successful
 
 type Subscription {
   subscribe(sessionKey: String!): SubscriptionBody

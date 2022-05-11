@@ -11,10 +11,7 @@ import com.apollographql.apollo3.network.ws.SubscriptionWsProtocol
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import pkg.SubscribeSubscription
-import ru.saime.gql_client.AuthorizationHeader
-import ru.saime.gql_client.MainActivity
-import ru.saime.gql_client.MustLengthSessionKey
-import ru.saime.gql_client.PrefRefreshTokenKey
+import ru.saime.gql_client.*
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.utils.NotificationHelper
 import ru.saime.gql_client.utils.VibrateHelper
@@ -64,6 +61,7 @@ class Backend(
 
 	init {
 		refreshToken = pref.getString(PrefRefreshTokenKey, "") ?: ""
+		Cache.Me.NotificationsEnable = pref.getBoolean(PrefNotificationEnable, false)
 	}
 
 	fun refreshTokenLoaded() = refreshToken != ""
@@ -79,6 +77,7 @@ class Backend(
 fun Backend.logout() {
 	pref.edit(true) {
 		remove(PrefRefreshTokenKey) // удалить refresh token
+		remove(PrefNotificationEnable) // настройка уведомлений
 	}
 	// отменить подписку
 	WorkManager.getInstance(activity).cancelAllWorkByTag(subscription_task_tag)

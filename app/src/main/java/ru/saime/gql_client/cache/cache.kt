@@ -71,6 +71,7 @@ data class Room(
 	val view: RoomType,
 	var lastMsgID: MutableState<Int?>,
 	val lastMsgRead: MutableState<Int?>,
+	val notify: MutableState<Boolean>,
 ) {
 	//	val messagesOrder = mutableListOf<OrderPair>()
 //	var messagesLazyOrder by mutableStateOf(emptyList<LazyMessage>())

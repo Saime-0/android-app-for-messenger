@@ -52,6 +52,7 @@ suspend fun Cache.fillRooms(backend: Backend, data: RoomsWithoutMembers) { // to
 			view = room1.roomWithoutMembers.view,
 			lastMsgID = mutableStateOf(room1.roomWithoutMembers.lastMessageID),
 			lastMsgRead = mutableStateOf(room1.roomWithoutMembers.lastMessageRead),
+			 notify = mutableStateOf(room1.roomWithoutMembers.notify)
 		).let { room ->
 			Cache.Data.rooms[room.roomID] = room
 			if (room.lastMsgID.value != null)

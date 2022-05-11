@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import ru.saime.gql_client.*
 import ru.saime.gql_client.backend.Backend
@@ -122,7 +123,12 @@ fun MenuProfile(backend: Backend, modifier: Modifier=Modifier) {
 				TextLargeProfile(text = me.firstName, color = Color.White)
 			}
 			Spacer(modifier = Modifier.weight(1f))
-			IconButton(onClick = { Cache.Me.NotificationsEnable = !Cache.Me.NotificationsEnable }) {
+			IconButton(onClick = {
+				Cache.Me.NotificationsEnable = !Cache.Me.NotificationsEnable
+				backend.pref.edit(true) {
+					putBoolean(PrefNotificationEnable, Cache.Me.NotificationsEnable)
+				}
+			}) {
 				Icon(
 					Icons.Default.Notifications,
 					null,
