@@ -27,7 +27,7 @@ suspend fun Backend.orderMe(): String? {
 			.execute()
 		if (response.data != null)
 			return if (response.data!!.me.onMe != null) {
-				Cache.fillMe(response.data!!.me.onMe!!)
+				Cache.fillMe(this, response.data!!.me.onMe!!)
 				Cache.LoadedData[LoadedDataType.Me] = Unit
 				null
 			} else
@@ -57,7 +57,7 @@ suspend fun Backend.orderEmployeeProfile(empID: Int): String? {
 		if (response.data != null)
 			if (response.data!!.employees.onEmployees != null)
 				if (response.data!!.employees.onEmployees!!.fullEmployees.employees.isNotEmpty()) {
-					Cache.fillEmployee(response.data!!.employees.onEmployees!!.fullEmployees.employees[0].fullEmployee)
+					Cache.fillEmployee(this, response.data!!.employees.onEmployees!!.fullEmployees.employees[0].fullEmployee)
 					Cache.LoadedData[LoadedDataType.Me] = Unit
 					return null
 				} else

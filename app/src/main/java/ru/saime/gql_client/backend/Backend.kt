@@ -8,7 +8,6 @@ import androidx.work.WorkManager
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.network.ws.GraphQLWsProtocol
 import com.apollographql.apollo3.network.ws.SubscriptionWsProtocol
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import pkg.SubscribeSubscription
 import ru.saime.gql_client.*
@@ -38,11 +37,10 @@ class Backend(
 	var refreshToken: String = ""
 	val sessionKey: String = getRandomString(MustLengthSessionKey)
 
-	var subscriptionJob: Job? = null
 
 	val apolloClient: ApolloClient = ApolloClient.Builder()
-		.serverUrl("http://chating.ddns.net:8080/query")
-		.webSocketServerUrl("http://chating.ddns.net:8080/query")
+		.serverUrl(ServerUrl)
+		.webSocketServerUrl(ServerUrl)
 		.wsProtocol(GraphQLWsProtocol.Factory())
 		.wsProtocol(
 			SubscriptionWsProtocol.Factory(
@@ -50,7 +48,7 @@ class Backend(
 			))
 		.build()
 
-	val vibrateHelper = VibrateHelper(activity.baseContext)
+	val vibrateHelper = VibrateHelper(activity)
 	val notificationHelper = NotificationHelper(activity)
 //	val powerManagerHelper = PowerManagerHelper(activity)
 

@@ -1,7 +1,6 @@
 package ru.saime.gql_client.backend
 
 import android.content.Context
-import androidx.lifecycle.Lifecycle
 import androidx.work.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.retryWhen
@@ -10,6 +9,7 @@ import pkg.SubscribeSubscription
 import ru.saime.gql_client.AuthorizationHeader
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.cache.fillOnNewMessage
+import ru.saime.gql_client.utils.foregrounded
 
 
 const val subscription_task_tag = "gql_client:subscription"
@@ -99,8 +99,8 @@ suspend fun subscribe(backend: Backend) {
 						// дальше
 						eventFlow.newMessage.emit(msg)
 
-						println(activity.lifecycle.currentState)
-						if (Cache.Me.NotificationsEnable && msg.employeeID != Cache.Me.ID && activity.lifecycle.currentState != Lifecycle.State.RESUMED)
+						// уведомление
+						if (Cache.Me.NotificationsEnable && msg.employeeID != Cache.Me.ID && !foregrounded())
 							notificationHelper.newMessage(msg)
 					}
 

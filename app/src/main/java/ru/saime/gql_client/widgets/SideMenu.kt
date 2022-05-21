@@ -35,6 +35,7 @@ import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.cache.Employee
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.screens.TextLargeProfile
+import ru.saime.gql_client.utils.getAppVersion
 
 @Composable
 fun SideMenu(
@@ -57,12 +58,12 @@ fun SideMenu(
 	Column {
 		MenuProfile(backend, Modifier.weight(1f))
 //		MenuItem(Icons.Outlined.ExitToApp, "Выход", modifier = Modifier.padding(6.dp).align(Alignment.CenterHorizontally))
-		TextNightlyBuild(Modifier.align(Alignment.CenterHorizontally))
+		TextNightlyBuild(getAppVersion(backend.activity), Modifier.align(Alignment.CenterHorizontally))
 	}
 }
 
 @Composable
-fun TextNightlyBuild(modifier: Modifier=Modifier) {
+fun TextNightlyBuild(version: String, modifier: Modifier=Modifier) {
 	Text(
 		"Nightly Build $version",
 		modifier = modifier
@@ -109,18 +110,19 @@ fun MenuProfile(backend: Backend, modifier: Modifier=Modifier) {
 				horizontalAlignment = Alignment.CenterHorizontally,
 				verticalArrangement = Arrangement.spacedBy(10.dp),
 				modifier = Modifier
-					.padding(top=20.dp)
+					.padding(top = 20.dp)
 					.clickable {
 						backend.mainNavController.navigate(Screen.Profile(me.empID).routeWithArgs)
 					}
 			) {
-				Avatar(
-					Modifier
-						.size(100.dp)
-						.clip(RoundedCornerShape(10.dp))
+					Photo(
+						me.photo.value,
+						Modifier
+							.size(100.dp)
+							.clip(RoundedCornerShape(10.dp))
 //					.padding(10.dp)
-				)
-				TextLargeProfile(text = me.firstName, color = Color.White)
+					)
+					TextLargeProfile(text = me.firstName, color = Color.White)
 			}
 			Spacer(modifier = Modifier.weight(1f))
 			IconButton(onClick = {

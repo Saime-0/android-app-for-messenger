@@ -75,7 +75,7 @@ fun MessageBody(
 						}
 					)
 				TextMessageBody(msg.body)
-				TextMessageData("(${msg.msgID})") // id
+//				TextMessageData("(${msg.msgID})") // id
 			}
 			TextMessageData(DateFormats.messageDate(msg.createdAt))
 		}
@@ -159,7 +159,7 @@ fun MessageInput(room: Room, modifier: Modifier = Modifier) {
 		onValueChange = { room.currentInputMessageText.value = it },
 		modifier = modifier
 			.width(250.dp)
-			.padding(bottom = 10.dp, top = 5.dp, start = 5.dp, end = 5.dp)
+			.padding(bottom = 10.dp, start = 5.dp)
 			.navigationBarsWithImePadding(),
 		textStyle = TextStyle(
 			fontSize = 18.sp,

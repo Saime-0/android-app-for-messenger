@@ -67,6 +67,8 @@ type Employee {
 
   lastName: String!
 
+  photoUrl: String!
+
   email: String!
 
   phoneNumber: String!
@@ -296,6 +298,8 @@ type Room {
   roomID: ID!
 
   name: String!
+
+  photoUrl: String!
 
   view: RoomType!
 

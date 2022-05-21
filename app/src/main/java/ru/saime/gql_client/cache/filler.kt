@@ -18,24 +18,32 @@ import pkg.type.RoomType
 import ru.saime.gql_client.MessageBackgroundCC
 import ru.saime.gql_client.MessageMeBackgroundCC
 import ru.saime.gql_client.backend.*
+import ru.saime.gql_client.utils.loadPicture
 import java.util.*
 
 
-fun Cache.fillMe(data: ProfileQuery.OnMe) {
-	Cache.fillEmployee(data.employee.fullEmployee)
+fun Cache.fillMe(backend: Backend, data: ProfileQuery.OnMe) {
+	Cache.fillEmployee(backend, data.employee.fullEmployee)
 
 	Cache.Me.ID = data.employee.fullEmployee.empID
 
 }
 
-fun Cache.fillEmployee(data: FullEmployee) {
+fun Cache.fillEmployee(backend: Backend, data: FullEmployee) {
 	Cache.Data.employees[data.empID] = Employee(
 		empID = data.empID,
 		firstName = data.firstName,
 		lastName = data.lastName,
+		photoUrl = data.photoUrl,
+		photo = mutableStateOf(null),
 		email = data.email,
 		phone = data.phoneNumber,
-	)
+	).apply {
+		if (photoUrl.isNotEmpty())
+			backend.loadPicture(photoUrl) {
+				this.photo.value = it
+			}
+	}
 	for (tag in data.tags.fullTags.tags) {
 		Cache.fillTag(tag.fullTag)
 		Cache.Data.employees[data.empID]!!.tagIDs.add(tag.fullTag.tagID)
@@ -46,18 +54,29 @@ suspend fun Cache.fillRooms(backend: Backend, data: RoomsWithoutMembers) { // to
 	println("начинаю заполнять комнаты")
 	for (room1 in data.rooms) {
 		 Room(
-			pos = room1.roomWithoutMembers.pos,
-			roomID = room1.roomWithoutMembers.roomID,
-			name = room1.roomWithoutMembers.name,
-			view = room1.roomWithoutMembers.view,
-			lastMsgID = mutableStateOf(room1.roomWithoutMembers.lastMessageID),
-			lastMsgRead = mutableStateOf(room1.roomWithoutMembers.lastMessageRead),
+			 pos = room1.roomWithoutMembers.pos,
+			 roomID = room1.roomWithoutMembers.roomID,
+			 name = room1.roomWithoutMembers.name,
+			 photoUrl = room1.roomWithoutMembers.photoUrl,
+			 photo = mutableStateOf(null),
+			 view = room1.roomWithoutMembers.view,
+			 lastMsgID = mutableStateOf(room1.roomWithoutMembers.lastMessageID),
+			 lastMsgRead = mutableStateOf(room1.roomWithoutMembers.lastMessageRead),
 			 notify = mutableStateOf(room1.roomWithoutMembers.notify)
-		).let { room ->
-			Cache.Data.rooms[room.roomID] = room
-			if (room.lastMsgID.value != null)
-				backend.orderRoomMessages(room.roomID, MsgCreated.BEFORE, room.lastMsgID.value!!, 1)
-		}
+		 ).let { room ->
+			 Cache.Data.rooms[room.roomID] = room
+			 if (room.lastMsgID.value != null)
+				 backend.orderRoomMessages(
+					 room.roomID,
+					 MsgCreated.BEFORE,
+					 room.lastMsgID.value!!,
+					 1
+				 )
+			 if (room.photoUrl.isNotEmpty())
+				 backend.loadPicture(room.photoUrl) {
+					 room.photo.value = it
+				 }
+		 }
 	}
 	Cache.Orders.roomOrder = Cache.Data.rooms.values
 		.map { Pair(it.roomID, it.pos) }
@@ -106,9 +125,11 @@ suspend fun Cache.fillOnNewMessage(
 		Cache.orderTargetMessageIfNotExists(backend, msg.targetID)
 		Cache.orderEmployeeMessageIfNotExists(backend, msg.empID)
 
-		Cache.Data.rooms[msg.roomID]?.let { room ->
-			if (!room.messagesLazyOrder.map { it.messageID == msg.msgID }.contains(true))
-				room.addLazyMessage(msg)
+		MainScope().launch { // fix Key 668 was already used
+			Cache.Data.rooms[msg.roomID]?.let { room ->
+				if (!room.messagesLazyOrder.map { it.messageID == msg.msgID }.contains(true))
+					room.addLazyMessage(msg)
+			}
 		}
 	}
 
@@ -133,7 +154,7 @@ suspend fun Cache.fillRoomMessages(backend: Backend, messages: MessagesForRoom) 
 				// сначала подгружаю недостающие данные, тк клиент после пополения списка не перерисует экран если бы я подгружал автора позже
 				Cache.orderTargetMessageIfNotExists(backend, msgForRoom.targetMsg?.msgID)
 				Cache.orderEmployeeMessageIfNotExists(backend, msgForRoom.employee?.empID)
-				MainScope().launch {
+				MainScope().launch { // fix Key 668 was already used
 					if (!room.messagesLazyOrder.map { it.messageID }
 							.contains(msgForRoom.msgID))
 						room.addLazyMessage(msg)

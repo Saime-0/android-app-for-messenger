@@ -4,6 +4,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import pkg.type.RoomType
 import java.util.*
 import kotlin.reflect.KProperty
@@ -68,6 +69,8 @@ data class Room(
 	var pos: Int,
 	val roomID: Int,
 	val name: String,
+	val photoUrl: String,
+	val photo: MutableState<ImageBitmap?>,
 	val view: RoomType,
 	var lastMsgID: MutableState<Int?>,
 	val lastMsgRead: MutableState<Int?>,
@@ -89,6 +92,8 @@ data class Employee(
 	val empID: Int,
 	val firstName: String,
 	val lastName: String,
+	val photoUrl: String,
+	val photo: MutableState<ImageBitmap?>,
 	val email: String,
 	val phone: String,
 	val tagIDs: MutableList<Int> = mutableListOf(),

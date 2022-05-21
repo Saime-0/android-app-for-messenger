@@ -7,7 +7,10 @@ import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import ru.saime.gql_client.*
+import ru.saime.gql_client.BackgroundCCLong
+import ru.saime.gql_client.DefaultTripleBarBackgroundCC
+import ru.saime.gql_client.MainActivity
+import ru.saime.gql_client.NavigationBarCC
 
 private val DarkColorPalette = darkColors(
 	primary = Color(0xFF2B2B2B),
@@ -34,15 +37,11 @@ private val LightColorPalette = lightColors(
 fun Gql_clientTheme(activity: MainActivity, darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
 
 	val systemUiController = rememberSystemUiController().apply {
-		setNavigationBarColor(
-			if (darkTheme) NavigationBarCC else Color.White
-		)
-		setStatusBarColor(
-			if (darkTheme) DefaultTripleBarBackgroundCC else Color.White
-		)
+		setNavigationBarColor(NavigationBarCC)
+		setStatusBarColor(DefaultTripleBarBackgroundCC)
 	}
 
-	val colors = if (darkTheme) DarkColorPalette else LightColorPalette
+	val colors = DarkColorPalette
 	MaterialTheme(
 		colors = colors,
 		typography = Typography,
@@ -50,8 +49,6 @@ fun Gql_clientTheme(activity: MainActivity, darkTheme: Boolean = isSystemInDarkT
 		content = content
 	)
 
-	activity.getWindow().getDecorView().setBackgroundColor(
-		if (darkTheme) BackgroundCCLong.toInt() else BackgroundLightCCLong.toInt()
-	);
+	activity.getWindow().getDecorView().setBackgroundColor(BackgroundCCLong.toInt());
 
 }

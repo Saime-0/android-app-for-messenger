@@ -27,8 +27,8 @@ import ru.saime.gql_client.backend.orderEmployeeProfile
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.utils.ScreenStatus
 import ru.saime.gql_client.utils.set
-import ru.saime.gql_client.widgets.Avatar
 import ru.saime.gql_client.widgets.EmptyScreen
+import ru.saime.gql_client.widgets.Photo
 
 
 @Composable
@@ -102,7 +102,8 @@ fun ShowProfileV2(
 		) {
 			Box(Modifier.padding(5.dp)) // top padding
 
-			Avatar(
+			Photo(
+				emp.photo.value,
 				Modifier
 					.clip(RoundedCornerShape(10.dp))
 					.size(200.dp)

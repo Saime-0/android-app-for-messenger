@@ -12,7 +12,7 @@ android {
         minSdk 24
         targetSdk 32
         versionCode 1
-        versionName "22.130"
+        versionName "22.132"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -73,7 +73,7 @@ dependencies {
 
     // implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     implementation 'com.apollographql.apollo3:apollo-runtime:3.2.2'
-    implementation("androidx.navigation:navigation-compose:2.5.0-beta01")
+    implementation("androidx.navigation:navigation-compose:2.5.0-rc01")
 
     implementation "com.google.accompanist:accompanist-insets:0.20.0"
     // If using insets-ui
@@ -81,4 +81,8 @@ dependencies {
 
     // for coloring top panel
     implementation "com.google.accompanist:accompanist-systemuicontroller:0.17.0"
+
+    // download images
+    implementation 'com.github.bumptech.glide:glide:4.13.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.13.0'
 }

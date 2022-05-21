@@ -3,8 +3,6 @@ package ru.saime.gql_client
 import java.text.SimpleDateFormat
 import java.util.*
 
-const val version = "22.130"
-
 const val PrefTableName = "user-table"
 const val PrefRefreshTokenKey = "rt"
 const val PrefNotificationEnable = "ne"
@@ -14,10 +12,11 @@ const val AuthorizationHeader = "Authorization"
 const val CountOfOrderedRooms = 20
 
 const val CountOfOrderedMessages = 50
-const val CountOfOrderedMessagesOnPreload = 35
+const val CountOfOrderedMessagesOnPreload = 50
 
 const val MustLengthSessionKey = 20
 
+const val ServerUrl = "http://chating.ddns.net:8080/query"
 
 object DateFormats {
 	private val messageDateFormat = SimpleDateFormat("HH:mm", Locale.US)

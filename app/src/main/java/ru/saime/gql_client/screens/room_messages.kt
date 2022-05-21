@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +68,17 @@ suspend fun sendMessage(
 
 }
 
-
+@Composable
+fun TextRoomNameTopBar(name: String) {
+	Text(
+		text = name,
+		color = MainTextCC,
+		fontSize = 19.sp,
+		fontWeight = FontWeight.Normal,
+		maxLines = 1,
+		overflow = TextOverflow.Ellipsis,
+	)
+}
 
 @Composable
 fun RoomMessages(backend: Backend, room: Room) {
@@ -91,18 +103,17 @@ fun RoomMessages(backend: Backend, room: Room) {
 				backgroundColor = DefaultTripleBarBackgroundCC,
 				title = {
 					Row(
-						verticalAlignment = Alignment.CenterVertically
+						verticalAlignment = Alignment.CenterVertically,
+						modifier = Modifier.padding(end = 30.dp)
 					) {
-						Avatar(
+						Photo(
+							room.photo.value,
 							Modifier
-								.padding(end = 17.dp, top = 4.dp, bottom = 4.dp)
-								.size(40.dp)
+								.padding(end = 8.dp, top = 4.dp, bottom = 4.dp)
+								.size(33.dp)
 								.clip(CircleShape)
 						)
-						Text(
-							room.name,
-							color = MainTextCC
-						)
+						TextRoomNameTopBar(room.name)
 					}
 				})
 		},

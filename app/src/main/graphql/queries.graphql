@@ -150,6 +150,7 @@ fragment FullEmployee on Employee {
     empID
     firstName
     lastName
+    photoUrl
     email
     phoneNumber
     tags {
@@ -165,6 +166,7 @@ fragment RoomWithoutMembers on Room {
     pos
     roomID
     name
+    photoUrl
     view
     lastMessageID
     lastMessageRead

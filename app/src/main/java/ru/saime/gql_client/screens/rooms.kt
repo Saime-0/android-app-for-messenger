@@ -1,6 +1,5 @@
 package ru.saime.gql_client.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +30,7 @@ import ru.saime.gql_client.cache.Room
 import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.utils.ScreenStatus
 import ru.saime.gql_client.utils.equal
+import ru.saime.gql_client.utils.lastMessageDontRead
 import ru.saime.gql_client.utils.set
 import ru.saime.gql_client.widgets.*
 
@@ -180,7 +180,8 @@ fun RoomCard(
 			verticalAlignment = Alignment.CenterVertically,
 		) {
 //			Box(modifier = Modifier.width(8.dp))
-			Avatar(
+			Photo(
+				room.photo.value,
 				Modifier
 					.padding(horizontal = 18.dp, vertical = 2.dp)
 					.size(50.dp)
@@ -213,7 +214,7 @@ fun RoomCard(
 							color = RoomLastMessageCC,
 							modifier = Modifier.weight(1f),
 						)
-						if (room.lastMsgID.value != null && (room.lastMsgRead.value == null || room.lastMsgRead.value!! < room.lastMsgID.value!!))
+						if (lastMessageDontRead(room))
 							NewMessageIndicator()
 					}
 				} else
@@ -230,11 +231,9 @@ fun RoomCard(
 
 @Composable
 fun NewMessageIndicator() {
-	Box(
-		Modifier
-			.size(10.dp)
-			.clip(CircleShape)
-			.background(Color.White)
+	Circle(
+		size = 10.dp,
+		color = Color.White,
 	)
 }
 

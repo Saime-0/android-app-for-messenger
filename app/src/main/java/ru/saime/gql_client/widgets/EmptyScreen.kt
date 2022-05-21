@@ -1,15 +1,13 @@
 package ru.saime.gql_client.widgets
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.Divider
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import ru.saime.gql_client.DividerDarkCC
+import androidx.compose.ui.unit.sp
+import ru.saime.gql_client.ProfileDimCC
 
 @Composable
 fun EmptyScreen(
@@ -24,6 +22,10 @@ fun EmptyScreen(
 			.fillMaxSize(),
 		contentAlignment = Alignment.Center
 	) {
-		Text(text)
+		Text(
+			text = text,
+			color = ProfileDimCC,
+			fontSize = 17.sp,
+		)
 	}
 }
