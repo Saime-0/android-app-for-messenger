@@ -2,6 +2,7 @@ package ru.saime.gql_client.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +38,7 @@ import ru.saime.gql_client.backend.readMessage
 import ru.saime.gql_client.backend.sendMessage
 import ru.saime.gql_client.cache.Cache
 import ru.saime.gql_client.cache.Room
+import ru.saime.gql_client.navigation.Screen
 import ru.saime.gql_client.utils.ScreenStatus
 import ru.saime.gql_client.utils.equal
 import ru.saime.gql_client.utils.scrollToIndex
@@ -251,7 +253,7 @@ fun ShowMessages(
 	modifier: Modifier = Modifier
 ) {
 	val coroutineScope = rememberCoroutineScope()
-	var unreadTad = remember {
+	val unreadTad = remember {
 		mutableStateOf(room.lastMsgRead.value)
 	}
 	var displayingLoading by remember {
@@ -260,7 +262,6 @@ fun ShowMessages(
 
 	println("загружается ShowMessages")
 //	val lazyListState = rememberForeverLazyListState(Screen.RoomMessages(room.roomID).routeWithArgs)
-
 
 	LazyColumn(
 		modifier = modifier,
@@ -279,24 +280,41 @@ fun ShowMessages(
 
 				Row(
 					modifier = Modifier
-						.padding(horizontal = 8.dp),
+						.padding(
+							start = if (room.view == RoomType.BLOG) 8.dp else 0.dp,
+							end = 8.dp,
+						),
 					verticalAlignment = Alignment.Bottom,
 					horizontalArrangement = Arrangement.Start
 				) {
 
-//					if (room.markedMessage.messageID.value != null && msg.msgID == room.markedMessage.messageID.value)
-//						Card(
-//							modifier = Modifier
-//								.padding(3.dp)
-//								.size(30.dp),
-//							shape = CircleShape,
-//							backgroundColor = MainBrightCC
-//						) {
-//							Icon(Icons.Filled.Check, null, tint = Color.White)
-//						}
-
+					if (lazyMessage.displayingName)
+						Cache.Data.employees[msg.empID!!]?.let { emp ->
+						Box(
+							modifier = Modifier
+								.padding(MessagePhotoPadding.dp)
+								.size(MessagePhotoSize.dp)
+								.clip(CircleShape)
+								.align(Alignment.Top)
+								.clickable {
+									backend.mainNavController.navigate(Screen.Profile(emp.empID).routeWithArgs)
+								}
+//								.background(Color.White)
+						) {
+									Photo(
+										emp.photo.value,
+//										Modifier
+//											.clickable {
+//												backend.mainNavController.navigate(Screen.Profile(emp.empID).routeWithArgs)
+//											}
+									)
+						}
+				}
 					Box(
 						Modifier
+							.padding(
+								start = if (!lazyMessage.displayingName) MessageWithoutPhotoPadding.dp else 0.dp
+							)
 							.weight(1f),
 						lazyMessage.alignment
 					) {
@@ -329,7 +347,6 @@ fun ShowMessages(
 						)
 
 					}
-
 				} // здесь потому что LazyColumn.reverseLayout = true:
 
 				// top padding

@@ -16,6 +16,10 @@ const val CountOfOrderedMessagesOnPreload = 50
 
 const val MustLengthSessionKey = 20
 
+const val MessagePhotoSize = 38
+const val MessagePhotoPadding = 8
+const val MessageWithoutPhotoPadding = MessagePhotoSize + MessagePhotoPadding * 2
+
 const val ServerUrl = "http://chating.ddns.net:8080/query"
 
 object DateFormats {
