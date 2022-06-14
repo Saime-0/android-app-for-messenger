@@ -299,15 +299,8 @@ fun ShowMessages(
 								.clickable {
 									backend.mainNavController.navigate(Screen.Profile(emp.empID).routeWithArgs)
 								}
-//								.background(Color.White)
 						) {
-									Photo(
-										emp.photo.value,
-//										Modifier
-//											.clickable {
-//												backend.mainNavController.navigate(Screen.Profile(emp.empID).routeWithArgs)
-//											}
-									)
+							Photo(emp.photo.value)
 						}
 				}
 					Box(

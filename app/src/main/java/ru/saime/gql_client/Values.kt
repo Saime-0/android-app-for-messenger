@@ -20,7 +20,8 @@ const val MessagePhotoSize = 38
 const val MessagePhotoPadding = 8
 const val MessageWithoutPhotoPadding = MessagePhotoSize + MessagePhotoPadding * 2
 
-const val ServerUrl = "http://chating.ddns.net:8080/query"
+//const val ServerUrl = "http://chating.ddns.net:8080/query"
+const val ServerUrl = "http://80.78.246.125:8080/query"
 
 object DateFormats {
 	private val messageDateFormat = SimpleDateFormat("HH:mm", Locale.US)

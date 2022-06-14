@@ -11,15 +11,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import kotlinx.coroutines.runBlocking
-import ru.saime.gql_client.ui.theme.Gql_clientTheme
-import ru.saime.gql_client.navigation.Screen
 import com.google.accompanist.insets.ProvideWindowInsets
+import kotlinx.coroutines.runBlocking
 import ru.saime.gql_client.backend.Backend
 import ru.saime.gql_client.backend.refreshTokens
 import ru.saime.gql_client.cache.Cache
+import ru.saime.gql_client.navigation.Screen
+import ru.saime.gql_client.screens.Login
+import ru.saime.gql_client.screens.Profile
+import ru.saime.gql_client.screens.RoomMessages
+import ru.saime.gql_client.screens.Rooms
+import ru.saime.gql_client.ui.theme.Gql_clientTheme
 import ru.saime.gql_client.widgets.AppKeyboardFocusManager
-import ru.saime.gql_client.screens.*
 
 
 class MainActivity : ComponentActivity() {
@@ -27,6 +30,7 @@ class MainActivity : ComponentActivity() {
 		super.onCreate(savedInstanceState)
 
 		setContent {
+			println(ServerUrl)
 			val backend = Backend(
 				this,
 				rememberNavController(),
